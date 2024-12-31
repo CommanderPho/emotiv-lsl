@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  python-app:
+    devices:
+
+      - /dev/bus/usb:/dev/bus/usb
+    build: .
+    container_name: python_pylsl_emotiv
+    privileged: true
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["conda", "run", "-n", "lsl_env", "python", "main.py"]

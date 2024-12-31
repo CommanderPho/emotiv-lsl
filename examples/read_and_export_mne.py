@@ -1,3 +1,5 @@
+import sys, os
+
 from datetime import datetime
 
 import numpy as np
@@ -5,8 +7,9 @@ from mne import Info, create_info
 from mne.io.array import RawArray
 from pylsl import StreamInlet, resolve_stream
 
-from config import SRATE
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from config import SRATE
 
 def get_info() -> Info:
     ch_names = ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7',
