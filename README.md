@@ -1,5 +1,5 @@
 # Emotiv-LSL Documentation
-"""
+
 # Emotiv-LSL
 ## Description
 Serveur LSL (Lab Streaming Layer) pour le casque Emotiv EPOC X, basé sur le projet original [CyKit] et [emotiv] (https://github.com/vtr0n/emotiv-lsl). Ce projet permet d'acquérir, lire et exporter les données brutes du casque.
