@@ -78,7 +78,7 @@ Serveur LSL (Lab Streaming Layer) pour le casque Emotiv EPOC X, basé sur le pro
 ### Acquisition de données brutes
 1. Lancer le serveur LSL :
    ```bash
-   python main.py &
+   python main.py
    ```
 2. Lire les données brutes :
    ```bash
@@ -88,7 +88,7 @@ Serveur LSL (Lab Streaming Layer) pour le casque Emotiv EPOC X, basé sur le pro
 ### Exportation des données avec MNE
 1. Lancer le serveur LSL :
    ```bash
-   python main.py &
+   python main.py
    ```
 2. Exporter les données dans un fichier `.fif` :
    ```bash
