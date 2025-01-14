@@ -57,6 +57,7 @@ Serveur LSL (Lab Streaming Layer) pour le casque Emotiv EPOC X, basé sur le pro
    ```
 2. **Lancer les conteneurs Docker** :
    ```bash
+   sudo docker-compose build
    sudo docker-compose up
    ```
 3. **Alternative avec `docker run`** :
