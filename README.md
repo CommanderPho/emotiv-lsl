@@ -141,27 +141,22 @@ python main.py
 
 ## 2025-06-17 - Actually working on DietPiVMWareEEG.local (via SSH)
 ```
-   81  git clone https://github.com/CommanderPho/emotiv-lsl.git
-   82  cd emotiv-lsl/
-   83  ls
-   84  mamba
-   85  deactivate
-   86  conda deactivate
-   87  ls
-   88  create -n lsl_env python=3.8
-   89  mamba create -n lsl_env python=3.8
-   90  mamba activate lsl_env
-   91  mamba init
-   92  conda activate lsl_env
-   93  conda env list
-   94  mamba install -c conda-forge liblsl
-   95  pip install -r requirements.txt
-   96  python main.py
-   97  apt update
-   98  sudo apt update
-   99  sudo apt-get install -y libhidapi-dev libhidapi-hidraw0 libhidapi-libusb0 libusb-1.0-0-dev build-essential
-  100  sudo apt update
-  101  ls
-  102  python main.py
+git clone https://github.com/CommanderPho/emotiv-lsl.git
+cd emotiv-lsl/
+ls
+mamba
+deactivate
+conda deactivate
+ls
+mamba create -n lsl_env python=3.8
+mamba activate lsl_env
+mamba install -c conda-forge liblsl
+pip install -r requirements.txt
+python main.py
+sudo apt update
+sudo apt install -y libhidapi-dev libhidapi-hidraw0 libhidapi-libusb0 libusb-1.0-0-dev build-essential
+sudo apt update
+ls
+python main.py
 
 ```
