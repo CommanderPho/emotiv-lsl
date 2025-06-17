@@ -106,3 +106,34 @@ Serveur LSL (Lab Streaming Layer) pour le casque Emotiv EPOC X, basé sur le pro
 - Projet original : [Emotiv-LSL sur GitHub](https://github.com/vtr0n/emotiv-lsl)
 
 --- 
+
+
+
+## 2025-05-30 - Pho WindowsVM Setup
+
+python main.py
+```ps1
+(.venv) PS C:\Users\pho\repos\emotiv-lsl> history
+
+  Id CommandLine
+  -- -----------
+   1 cd .\repos\
+   2 ls
+   3 pwd
+   4 git clone https://github.com/CommanderPho/emotiv-lsl.git
+   5 cd .\emotiv-lsl\
+   6 ls
+   7 code .
+   8 pyenv local
+   9 pyenv
+  10 pyenv exec python -m pip install pipenv
+  11 pyenv exec python -m pip install --upgrade pip
+  12 pyenv exec python -m pip install venv
+  13 pyenv exec python -m venv .venv
+  14 .\.venv\Scripts\Activate.ps1
+  15 pyenv local .\.venv\Scripts\python.exe
+  16 python -m pip install --upgrade pip
+  17 python -m pip install pipenv
+  18 python -m pipenv install
+  19 python -m pip install bsl
+  ```
