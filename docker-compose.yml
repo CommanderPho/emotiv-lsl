@@ -3,8 +3,9 @@ version: '3.8'
 services:
   python-app:
     devices:
-
-      - /dev/bus/usb:/dev/bus/usb
+      - /dev/hidraw0:/dev/hidraw0
+      - /dev/hidraw1:/dev/hidraw1
+      - /dev/bus/usb/001/004:/dev/bus/usb/001/004
     build: .
     container_name: python_pylsl_emotiv
     privileged: true
@@ -12,4 +13,5 @@ services:
       - .:/app
     environment:
       - PYTHONUNBUFFERED=1
+      - USB_DEVICE=1234:ed02
     command: ["conda", "run", "-n", "lsl_env", "python", "main.py"]
