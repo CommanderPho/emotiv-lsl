@@ -2,29 +2,29 @@
 
 # Emotiv-LSL
 ## Description
-Serveur LSL (Lab Streaming Layer) pour le casque Emotiv EPOC X, basé sur le projet original [CyKit] et [emotiv] (https://github.com/vtr0n/emotiv-lsl). Ce projet permet d'acquérir, lire et exporter les données brutes du casque.
+LSL (Lab Streaming Layer) server for the Emotiv EPOC X headset, based on the original [CyKit] and [emotiv] (https://github.com/vtr0n/emotiv-lsl) project. This project allows acquiring, reading, and exporting raw data from the headset.
 
 ---
 
-## Prérequis
-### Dépendances
-- **Python 3.8** : Créez un environnement conda dédié.
-- **Liblsl** : Installez la bibliothèque LSL pour Python.
-- **Packages supplémentaires** : Utilisez `requirements.txt` pour installer les dépendances nécessaires.
+## Prerequisites
+### Dependencies
+- **Python 3.8**: Create a dedicated conda environment.
+- **Liblsl**: Install the LSL library for Python.
+- **Additional packages**: Use `requirements.txt` to install necessary dependencies.
 
 ---
 
 ## Installation
-### Étapes de base
-1. **Créer un environnement conda** : 
+### Basic Steps
+1. **Create a conda environment**: 
    ```bash
    conda create -n lsl_env python=3.8
    ```
-2. **Activer l'environnement** :
+2. **Activate the environment**:
    ```bash
    conda activate lsl_env
    ```
-3. **Installer les dépendances** :
+3. **Install dependencies**:
    ```bash
    conda install -c conda-forge liblsl
    pip install -r requirements.txt
@@ -32,15 +32,15 @@ Serveur LSL (Lab Streaming Layer) pour le casque Emotiv EPOC X, basé sur le pro
 
 ---
 
-## Utilisation
-1. **Connecter le dongle et allumer le casque** :
-   - Assurez-vous que les indicateurs lumineux signalent une connexion active.
-2. **Lancer le serveur LSL** :
+## Usage
+1. **Connect the dongle and turn on the headset**:
+   - Make sure the indicator lights signal an active connection.
+2. **Launch the LSL server**:
    ```bash
    python main.py
    ```
-3. **Visualiser le signal** :
-   - Dans l'environnement conda, installez et lancez `bsl_stream_viewer` :
+3. **Visualize the signal**:
+   - In the conda environment, install and launch `bsl_stream_viewer`:
      ```bash
      pip install bsl
      bsl_stream_viewer
@@ -49,18 +49,18 @@ Serveur LSL (Lab Streaming Layer) pour le casque Emotiv EPOC X, basé sur le pro
 ---
 
 ## Docker
-### Installation et exécution
-1. **Configurer le projet Docker** :
+### Installation and Execution
+1. **Configure the Docker project**:
    ```bash
    chmod +x ./setup_emotiv_docker.sh
    sudo ./setup_emotiv_docker.sh
    ```
-2. **Lancer les conteneurs Docker** :
+2. **Launch Docker containers**:
    ```bash
    sudo docker-compose build
    sudo docker-compose up
    ```
-3. **Alternative avec `docker run`** :
+3. **Alternative with `docker run`**:
    ```bash
    docker run -d \
      --name emotiv \
@@ -74,23 +74,23 @@ Serveur LSL (Lab Streaming Layer) pour le casque Emotiv EPOC X, basé sur le pro
 
 ---
 
-## Exemples d'utilisation
-### Acquisition de données brutes
-1. Lancer le serveur LSL :
+## Usage Examples
+### Raw Data Acquisition
+1. Launch the LSL server:
    ```bash
    python main.py
    ```
-2. Lire les données brutes :
+2. Read raw data:
    ```bash
    python examples/read_data.py
    ```
 
-### Exportation des données avec MNE
-1. Lancer le serveur LSL :
+### Data Export with MNE
+1. Launch the LSL server:
    ```bash
    python main.py
    ```
-2. Exporter les données dans un fichier `.fif` :
+2. Export data to a `.fif` file:
    ```bash
    python examples/read_and_export_mne.py
    ```
@@ -98,12 +98,12 @@ Serveur LSL (Lab Streaming Layer) pour le casque Emotiv EPOC X, basé sur le pro
 ---
 
 ## Roadmap
-- **Support Windows** : Actuellement en développement.
+- **Windows Support**: Currently in development.
 
 ---
 
-## Ressources
-- Projet original : [Emotiv-LSL sur GitHub](https://github.com/vtr0n/emotiv-lsl)
+## Resources
+- Original project: [Emotiv-LSL on GitHub](https://github.com/vtr0n/emotiv-lsl)
 
 --- 
 
