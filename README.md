@@ -176,6 +176,9 @@ python main.py
 
 ```
 
+Mamba python env path: `"C:\Users\pho\micromamba\envs\lsl_env\python.exe"`
+
+
 ### Had to install `hidapi-win` manually:
 1. Downloaded the latest release from https://github.com/libusb/hidapi/releases
 [hidapi-releases](https://github.com/libusb/hidapi/releases/tag/hidapi-0.15.0) and unzippped it in the `emotiv-lsl` folder.
