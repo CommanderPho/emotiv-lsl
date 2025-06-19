@@ -207,3 +207,13 @@ I discovered that you have to launch several terminals:
 1. first the server: `python main.py`, 
 2. then the logger/file writer `examples/pho_read_and_export_mne.py`
 3. Optionally, you can also visualize the results with: `bsl_stream_viewer`.
+
+
+
+copy "C:\Users\pho\repos\emotiv-lsl\hidapi-win\x64\hidapi.dll" "C:\Users\pho\micromamba\envs\lsl_env\Library\bin\"
+
+copy hidapi-win\x64\hidapi.dll "K:\FastSwap\Environments\micromamba\envs\lsl_env\Library\bin\"
+
+copy hidapi-win\x64\hidapi.dll "C:\Users\pho\micromamba\envs\lsl_env\Library\bin\"
+
+```
