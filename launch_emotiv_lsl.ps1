@@ -1,55 +1,28 @@
 #!/usr/bin/env powershell
 
-# PowerShell script to launch Emotiv LSL server and viewer in separate terminals
-# Usage: .\launch_emotiv_lsl.ps1
+# Direct Windows Terminal launcher for Emotiv LSL
+Write-Host "Launching Emotiv LSL in Windows Terminal..." -ForegroundColor Green
 
-Write-Host "Launching Emotiv LSL Server and Viewer..." -ForegroundColor Green
-
-# Get the current directory (should be the emotiv-lsl directory)
 $currentDir = Get-Location
 
-# Check if Windows Terminal is available
-$wtAvailable = Get-Command "wt" -ErrorAction SilentlyContinue
-
-if ($wtAvailable) {
-    Write-Host "Using Windows Terminal..." -ForegroundColor Yellow
+# Force launch Windows Terminal directly
+try {
+    # Method 1: Try using Windows Terminal via Windows Apps
+    $command = "wt --window 0 new-tab --title `"LSL Server`" powershell -NoExit -Command `"cd '$currentDir'; micromamba activate lsl_env; python main.py`" ; new-tab --title `"BSL Viewer`" powershell -NoExit -Command `"cd '$currentDir'; micromamba activate lsl_env; Start-Sleep 5; bsl_stream_viewer`""
     
-    # Launch Windows Terminal with two tabs
-    # Tab 1: LSL Server
-    # Tab 2: BSL Stream Viewer
-    Start-Process "wt" -ArgumentList @(
-        "--window", "0",
-        "new-tab", "--title", "LSL Server", "powershell", "-NoExit", "-Command", 
-        "cd '$currentDir'; micromamba activate lsl_env; python main.py",
-        ";",
-        "new-tab", "--title", "BSL Viewer", "powershell", "-NoExit", "-Command",
-        "cd '$currentDir'; micromamba activate lsl_env; Start-Sleep -Seconds 3; bsl_stream_viewer"
-    )
-} else {
-    Write-Host "Windows Terminal not found. Using separate PowerShell windows..." -ForegroundColor Yellow
-    
-    # Launch LSL Server in first PowerShell window
-    Start-Process "powershell" -ArgumentList @(
-        "-NoExit",
-        "-Command",
-        "Set-Location '$currentDir'; Write-Host 'Starting LSL Server...' -ForegroundColor Green; micromamba activate lsl_env; python main.py"
-    ) -WorkingDirectory $currentDir
-    
-    # Wait a moment for the server to start
-    Start-Sleep -Seconds 2
-    
-    # Launch BSL Stream Viewer in second PowerShell window
-    Start-Process "powershell" -ArgumentList @(
-        "-NoExit", 
-        "-Command",
-        "Set-Location '$currentDir'; Write-Host 'Starting BSL Stream Viewer...' -ForegroundColor Blue; micromamba activate lsl_env; Start-Sleep -Seconds 3; bsl_stream_viewer"
-    ) -WorkingDirectory $currentDir
+    Invoke-Expression $command
+    Write-Host "Successfully launched Windows Terminal!" -ForegroundColor Green
 }
-
-Write-Host "Launched Emotiv LSL components!" -ForegroundColor Green
-Write-Host "Server window: Running 'python main.py'" -ForegroundColor Cyan
-Write-Host "Viewer window: Running 'bsl_stream_viewer'" -ForegroundColor Cyan
-Write-Host "" 
-Write-Host "Make sure your Emotiv headset is connected and powered on." -ForegroundColor Yellow
-Write-Host "Press any key to exit this launcher..." -ForegroundColor Gray
-$null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+catch {
+    Write-Host "Method 1 failed, trying alternative..." -ForegroundColor Yellow
+    
+    try {
+        # Method 2: Direct execution
+        & "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe" --window 0 new-tab --title "LSL Server" powershell -NoExit -Command "cd '$currentDir'; micromamba activate lsl_env; python main.py" `; new-tab --title "BSL Viewer" powershell -NoExit -Command "cd '$currentDir'; micromamba activate lsl_env; Start-Sleep 5; bsl_stream_viewer"
+        Write-Host "Successfully launched Windows Terminal (Method 2)!" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Windows Terminal launch failed. Error: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Please ensure Windows Terminal is installed from Microsoft Store." -ForegroundColor Yellow
+    }
+}
