@@ -14,6 +14,7 @@
 			"activityBar.background": "#195800",
 			"titleBar.activeBackground": "#077a1a",
 			"titleBar.activeForeground": "#FFFAFF"
-		}
+		},
+		"powershell.cwd": "emotiv-lsl"
 	}
 }
