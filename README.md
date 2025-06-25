@@ -217,3 +217,10 @@ copy hidapi-win\x64\hidapi.dll "K:\FastSwap\Environments\micromamba\envs\lsl_env
 copy hidapi-win\x64\hidapi.dll "C:\Users\pho\micromamba\envs\lsl_env\Library\bin\"
 
 ```
+
+
+## Running
+```python
+micromamba activate lsl_env
+bsl_stream_viewer
+```
