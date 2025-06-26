@@ -222,14 +222,14 @@ copy hidapi-win\x64\hidapi.dll "C:\Users\pho\micromamba\envs\lsl_env\Library\bin
 
 In two separate terminal tabs:
 1. Activate the conda environment, launch the server backend
-   ```ps1
-   micromamba activate lsl_env
-   python main.py
-   ```
+```ps1
+micromamba activate lsl_env
+python main.py
+```
 
 2. Launch the `bsl_stream_viewer`:
    ```ps1
-   micromamba activate lsl_env
-   bsl_stream_viewer
+micromamba activate lsl_env
+bsl_stream_viewer
    ```
 
