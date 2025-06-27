@@ -5,30 +5,32 @@ FROM continuumio/miniconda
 RUN conda create -y --name lsl_env python=3.8
 SHELL ["conda", "run", "-n", "lsl_env", "/bin/bash", "-c"]
 
-# Mettre à jour les sources Debian et installer les dépendances nécessaires
+# Update Debian sources and install necessary dependencies
 RUN sed -i 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list && \
     sed -i '/security.debian.org/d' /etc/apt/sources.list && \
     apt-get update && \
-    apt-get install -y libhidapi-dev libhidapi-hidraw0 libhidapi-libusb0 libusb-1.0-0-dev build-essential
-
-# Installer liblsl (Bibliothèque pour l'acquisition de signaux via LSL)
+    apt-get install -y libhidapi-dev libhidapi-hidraw0 libhidapi-libusb0 libusb-1.0-0-dev build-essential usbutils wireshark-common tshark tcpdump udev&& \
+    apt-get clean
+    
+# Install liblsl (Lab Streaming Layer library)
 RUN conda install -y -c conda-forge liblsl
 
-# Configurer les liens symboliques pour les bibliothèques partagées
+# Configure shared library symbolic links
 RUN ldconfig
 
-# Copier les fichiers du projet dans l'image
+# Copy project files to the image
 COPY . /app
 
-# Définir le répertoire de travail
+# Set working directory
 WORKDIR /app
 
-# Mettre à jour pip et installer les dépendances Python
+# Update pip and install Python dependencies
 RUN pip install --upgrade pip && \
-    pip install -r requirements.txt --no-cache-dir
+    pip install -r requirements.txt --no-cache-dir && \
+    pip install mne matplotlib
 
-# Ajouter PYTHONPATH pour inclure les fichiers locaux
+# Add PYTHONPATH to include local files
 ENV PYTHONPATH="/app:$PYTHONPATH"
 
-# Point d'entrée par défaut
+# Default entry point
 CMD ["conda", "run", "-n", "lsl_env", "python", "main.py"]
