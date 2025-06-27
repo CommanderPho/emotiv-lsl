@@ -169,7 +169,7 @@ cd emotiv-lsl/
 micromamba create -n lsl_env python=3.8
 micromamba activate lsl_env
 micromamba install -c conda-forge liblsl
-pip install -r requirements.txt
+pip install -r requirements_for_mamba.txt
 python main.py
 ls
 python main.py
