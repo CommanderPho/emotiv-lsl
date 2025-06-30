@@ -1,28 +1,33 @@
 #!/usr/bin/env powershell
 
-# Direct Windows Terminal launcher for Emotiv LSL
-Write-Host "Launching Emotiv LSL in Windows Terminal..." -ForegroundColor Green
+# Direct launcher for Emotiv LSL
+Write-Host "Launching Emotiv LSL components..." -ForegroundColor Green
 
-$currentDir = Get-Location
+# Get the absolute path to the repository root directory
+$repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+Set-Location $repoRoot
 
-# Force launch Windows Terminal directly
-try {
-    # Method 1: Try using Windows Terminal via Windows Apps
-    $command = "wt --window 0 new-tab --title `"LSL Server`" powershell -NoExit -Command `"cd '$currentDir'; micromamba activate lsl_env; python main.py`" ; new-tab --title `"BSL Viewer`" powershell -NoExit -Command `"cd '$currentDir'; micromamba activate lsl_env; Start-Sleep 5; bsl_stream_viewer`""
+# Function to create a new PowerShell window with a command
+function Start-CommandWindow {
+    param (
+        [string]$Title,
+        [string]$Command
+    )
     
-    Invoke-Expression $command
-    Write-Host "Successfully launched Windows Terminal!" -ForegroundColor Green
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", 
+        "Write-Host 'Starting $Title...' -ForegroundColor Cyan; $Command" -WindowStyle Normal
 }
-catch {
-    Write-Host "Method 1 failed, trying alternative..." -ForegroundColor Yellow
-    
-    try {
-        # Method 2: Direct execution
-        & "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe" --window 0 new-tab --title "LSL Server" powershell -NoExit -Command "cd '$currentDir'; micromamba activate lsl_env; python main.py" `; new-tab --title "BSL Viewer" powershell -NoExit -Command "cd '$currentDir'; micromamba activate lsl_env; Start-Sleep 5; bsl_stream_viewer"
-        Write-Host "Successfully launched Windows Terminal (Method 2)!" -ForegroundColor Green
-    }
-    catch {
-        Write-Host "Windows Terminal launch failed. Error: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host "Please ensure Windows Terminal is installed from Microsoft Store." -ForegroundColor Yellow
-    }
-}
+
+# Launch the server component
+Write-Host "Starting LSL Server..." -ForegroundColor Cyan
+Start-CommandWindow -Title "LSL Server" -Command "cd '$repoRoot'; micromamba activate lsl_env; python '$repoRoot\main.py'"
+
+# Wait a moment for the server to initialize
+Write-Host "Waiting for server to initialize..." -ForegroundColor Yellow
+Start-Sleep -Seconds 5
+
+# Launch the viewer component
+Write-Host "Starting BSL Viewer..." -ForegroundColor Cyan
+Start-CommandWindow -Title "BSL Viewer" -Command "cd '$repoRoot'; micromamba activate lsl_env; bsl_stream_viewer"
+
+Write-Host "All components launched successfully!" -ForegroundColor Green
