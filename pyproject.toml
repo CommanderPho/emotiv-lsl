@@ -4,4 +4,16 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.8.10"
-dependencies = []
+dependencies = [
+    "cython>=3.1.2",
+    "ipykernel>=6.29.5",
+    "ipywidgets>=8.1.7",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.7.5",
+    "mne-qt-browser>=0.6.1",
+    "mne[hdf5]>=1.6.1",
+    "plotly>=6.2.0",
+    "seaborn>=0.13.2",
+    "setuptools>=75.3.2",
+    "wheel>=0.45.1",
+]
