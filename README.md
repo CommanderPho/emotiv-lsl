@@ -151,7 +151,7 @@ ls
 mamba create -n lsl_env python=3.8
 mamba activate lsl_env
 mamba install -c conda-forge liblsl
-pip install -r requirements.txt
+pip install -r requirements_for_mamba.txt
 python main.py
 sudo apt update
 sudo apt install -y libhidapi-dev libhidapi-hidraw0 libhidapi-libusb0 libusb-1.0-0-dev build-essential
