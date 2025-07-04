@@ -1,18 +1,17 @@
-version: '2'
+version: '3.8'
 
 services:
   python-app:
-    build: .
-    container_name: python_pylsl_emotiv
-    privileged: true
     devices:
       - /dev/hidraw0:/dev/hidraw0
       - /dev/hidraw1:/dev/hidraw1
-      - /dev/bus/usb/001/007:/dev/bus/usb/001/007
+      - /dev/bus/usb/001/006:/dev/bus/usb/001/006
+    build: .
+    container_name: python_pylsl_emotiv
+    privileged: true
     volumes:
       - .:/app
     environment:
       - PYTHONUNBUFFERED=1
       - USB_DEVICE=1234:ed02
     command: ["conda", "run", "-n", "lsl_env", "python", "main.py"]
-    network_mode: host

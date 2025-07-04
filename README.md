@@ -151,7 +151,7 @@ ls
 mamba create -n lsl_env python=3.8
 mamba activate lsl_env
 mamba install -c conda-forge liblsl
-pip install -r requirements.txt
+pip install -r requirements_for_mamba.txt
 python main.py
 sudo apt update
 sudo apt install -y libhidapi-dev libhidapi-hidraw0 libhidapi-libusb0 libusb-1.0-0-dev build-essential
@@ -233,3 +233,21 @@ micromamba activate lsl_env
 bsl_stream_viewer
    ```
 
+
+# 2025-07-01 - Got Epoc X Info
+```
+device: {'path': b'\\\\?\\HID#VID_1234&PID_ED02&MI_01#9&2bf47d7c&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}', 'vendor_id': 4660, 'product_id': 60674, 'serial_number': 'UD20221202006756', 'release_number': 6, 'manufacturer_string': 'Emotiv', 'product_string': 'EEG Signals', 'usage_page': 65535, 'usage': 2, 'interface_number': 1}
+
+Crypto Key:
+bytearray(b'6566565666756557')
+
+```
+
+# 2025-07-02 - Official Emotiv Services on Windows to see Sensor/EEG Quality
+### not yet working programatically
+```
+## List services
+powershell Get-Service | Format-Table Name, DisplayName, Status
+
+
+```

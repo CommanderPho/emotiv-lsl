@@ -12,6 +12,56 @@
 			"titleBar.activeBackground": "#077a1a",
 			"titleBar.activeForeground": "#FFFAFF"
 		},
-		"powershell.cwd": "emotiv-lsl"
+		"powershell.cwd": "emotiv-lsl",
+		"terminal.integrated.profiles.linux": {
+			"lsl-env": {
+				"path": "bash",
+				"args": ["-c", "micromamba activate lsl_env && bash"]
+			},
+			"bash": {
+				"path": "bash",
+				"icon": "terminal-bash"
+			},
+			"zsh": {
+				"path": "zsh"
+			},
+			"fish": {
+				"path": "fish"
+			},
+			"tmux": {
+				"path": "tmux",
+				"icon": "terminal-tmux"
+			},
+			"pwsh": {
+				"path": "pwsh",
+				"icon": "terminal-powershell"
+			}
+		},
+		"terminal.integrated.profiles.windows": {
+			"lsl-env-powershell": {
+				"source": "PowerShell",
+				"args": ["-NoExit", "-Command", "micromamba activate lsl_env"]
+			},
+			"lsl-env": {
+				"path": "cmd.exe",
+				"args": ["/k", "micromamba activate lsl_env"]
+			},
+			"PowerShell": {
+				"source": "PowerShell",
+				"icon": "terminal-powershell"
+			},
+			"Command Prompt": {
+				"path": [
+					"${env:windir}\\Sysnative\\cmd.exe",
+					"${env:windir}\\System32\\cmd.exe"
+				],
+				"args": [],
+				"icon": "terminal-cmd"
+			},
+			"Git Bash": {
+				"source": "Git Bash"
+			}
+		},
+		"terminal.integrated.defaultProfile.windows": "lsl-env-powershell"
 	}
 }
