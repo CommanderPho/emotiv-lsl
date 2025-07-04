@@ -1,177 +1,100 @@
 #!/usr/bin/env python3
 """
-Advanced LSL receiver with signal processing and basic analysis.
+Lab Streaming Layer (LSL) receiver for Emotiv EEG data.
+Connects to an LSL stream and prints EEG information.
 """
 
 import time
 import numpy as np
-from collections import deque
 from bsl import StreamReceiver
-from bsl.utils import resolve_streams
-
-
-class EEGReceiver:
-    """Advanced EEG receiver with buffering and basic analysis."""
-
-    def __init__(self, buffer_duration=10.0):
-        """
-        Initialize the EEG receiver.
-
-        Args:
-            buffer_duration (float): Duration of data to keep in buffer (seconds)
-        """
-        self.buffer_duration = buffer_duration
-        self.receiver = None
-        self.data_buffer = deque()
-        self.timestamp_buffer = deque()
-        self.is_running = False
-
-    def connect(self, stream_name=None):
-        """Connect to an LSL stream."""
-        print("Resolving LSL streams...")
-        streams = resolve_streams(timeout=10.0)
-
-        if not streams:
-            raise RuntimeError("No LSL streams found")
-
-        # Find target stream
-        target_stream = None
-        if stream_name:
-            for stream in streams:
-                if stream_name.lower() in stream.name().lower():
-                    target_stream = stream
-                    break
-        else:
-            # Auto-select EEG stream
-            for stream in streams:
-                if (stream.type().lower() == 'eeg' or 
-                    'emotiv' in stream.name().lower()):
-                    target_stream = stream
-                    break
-
-        if target_stream is None:
-            target_stream = streams[0]
-
-        print(f"Connecting to: {target_stream.name()}")
-        self.receiver = StreamReceiver(bufsize=2, winsize=1, stream=target_stream)
-
-        return target_stream
-
-    def start(self):
-        """Start data acquisition."""
-        if self.receiver is None:
-            raise RuntimeError("Not connected to any stream")
-
-        self.receiver.start()
-        self.is_running = True
-        print("Data acquisition started")
-
-    def stop(self):
-        """Stop data acquisition."""
-        if self.receiver:
-            self.receiver.stop()
-        self.is_running = False
-        print("Data acquisition stopped")
-
-    def get_latest_data(self):
-        """Get the latest data from the stream."""
-        if not self.is_running:
-            return None, None
-
-        data, timestamps = self.receiver.acquire()
-
-        if data is not None and len(data) > 0:
-            # Add to buffer
-            for sample, ts in zip(data, timestamps):
-                self.data_buffer.append(sample)
-                self.timestamp_buffer.append(ts)
-
-            # Trim buffer to specified duration
-            current_time = time.time()
-            while (self.timestamp_buffer and 
-                   current_time - self.timestamp_buffer[0] > self.buffer_duration):
-                self.data_buffer.popleft()
-                self.timestamp_buffer.popleft()
-
-            return data, timestamps
-
-        return None, None
-
-    def get_buffer_data(self):
-        """Get all buffered data as numpy arrays."""
-        if not self.data_buffer:
-            return None, None
-
-        data = np.array(list(self.data_buffer))
-        timestamps = np.array(list(self.timestamp_buffer))
-        return data, timestamps
-
-    def compute_statistics(self):
-        """Compute basic statistics on buffered data."""
-        data, timestamps = self.get_buffer_data()
-
-        if data is None:
-            return None
-
-        stats = {
-            'mean': np.mean(data, axis=0),
-            'std': np.std(data, axis=0),
-            'min': np.min(data, axis=0),
-            'max': np.max(data, axis=0),
-            'samples': len(data),
-            'duration': timestamps[-1] - timestamps[0] if len(timestamps) > 1 else 0
-        }
-
-        return stats
+from bsl.lsl import resolve_streams
 
 
 def main():
-    """Main function for advanced EEG receiver."""
-    receiver = EEGReceiver(buffer_duration=5.0)
+    """Main function to receive and display EEG data from LSL stream."""
 
+    print("Looking for available LSL streams...")
+
+    # Resolve available streams (wait up to 10 seconds)
+    streams = resolve_streams(timeout=10.0)
+
+    if not streams:
+        print("No LSL streams found. Make sure your Emotiv device is streaming data.")
+        return
+
+    # Display available streams
+    print(f"Found {len(streams)} stream(s):")
+    for i, stream in enumerate(streams):
+        # Fixed: removed parentheses - these are properties, not methods
+        print(f"  {i}: {stream.name} - {stream.stype} "
+              f"({stream.n_channels} channels at {stream.sfreq} Hz)")
+
+    # Find EEG stream (look for 'EEG' type or Emotiv-related names)
+    eeg_stream = None
+    for stream in streams:
+        if (stream.stype.lower() == 'eeg' or 
+            'emotiv' in stream.name.lower() or 
+            'eeg' in stream.name.lower()):
+            eeg_stream = stream
+            break
+
+    if eeg_stream is None:
+        print("No EEG stream found. Using the first available stream.")
+        eeg_stream = streams[0]
+
+    print(f"\nConnecting to stream: {eeg_stream.name}")
+    print(f"Stream info:")
+    print(f"  Type: {eeg_stream.stype}")
+    print(f"  Channels: {eeg_stream.n_channels}")
+    print(f"  Sampling rate: {eeg_stream.sfreq} Hz")
+    print(f"  Source ID: {eeg_stream.source_id}")
+
+    # Create StreamReceiver
     try:
-        # Connect to stream
-        stream = receiver.connect()
+        receiver = StreamReceiver(stream=eeg_stream)
         receiver.start()
 
-        print(f"Channel names: {receiver.receiver.ch_names}")
-        print("Starting advanced data acquisition...")
-        print("Press Ctrl+C to stop\n")
+        print(f"\nChannel names: {receiver.ch_names}")
+        print("\nStarting data acquisition... (Press Ctrl+C to stop)")
+        print("-" * 60)
 
-        last_stats_time = time.time()
+        sample_count = 0
+        start_time = time.time()
 
         while True:
-            # Get latest data
-            data, timestamps = receiver.get_latest_data()
+            # Get data (this will block until data is available)
+            data, timestamps = receiver.acquire()
 
-            if data is not None:
-                # Print real-time data
-                print(f"Latest sample: {data[-1]}")
-
-                # Print statistics every 2 seconds
+            if data is not None and len(data) > 0:
+                sample_count += len(data)
                 current_time = time.time()
-                if current_time - last_stats_time >= 2.0:
-                    stats = receiver.compute_statistics()
-                    if stats:
-                        print(f"\nBuffer Statistics ({stats['samples']} samples, "
-                              f"{stats['duration']:.1f}s):")
-                        for i, ch_name in enumerate(receiver.receiver.ch_names):
-                            print(f"  {ch_name}: "
-                                  f"mean={stats['mean'][i]:.2f}, "
-                                  f"std={stats['std'][i]:.2f}, "
-                                  f"range=[{stats['min'][i]:.2f}, {stats['max'][i]:.2f}]")
-                        print("-" * 60)
 
-                    last_stats_time = current_time
+                # Print data info every 100 samples to avoid spam
+                if sample_count % 100 == 0:
+                    elapsed_time = current_time - start_time
 
-            time.sleep(0.01)
+                    print(f"Time: {elapsed_time:.1f}s | Samples: {sample_count}")
+                    print(f"Latest sample: {data[-1]}")
+                    print(f"Timestamp: {timestamps[-1]:.6f}")
+
+                    # Print channel-wise data
+                    for i, (ch_name, value) in enumerate(zip(receiver.ch_names, data[-1])):
+                        print(f"  {ch_name}: {value:.2f} µV")
+
+                    print("-" * 60)
+
+            time.sleep(0.01)  # Small delay to prevent excessive CPU usage
 
     except KeyboardInterrupt:
-        print("\nStopping...")
+        print("\nStopping data acquisition...")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error during data acquisition: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
-        receiver.stop()
+        if 'receiver' in locals():
+            receiver.stop()
+        print("Receiver stopped.")
 
 
 if __name__ == "__main__":
