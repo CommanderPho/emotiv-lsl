@@ -7,6 +7,7 @@ requires-python = ">=3.8.10"
 dependencies = [
     "bsl>=0.6.4",
     "cython>=3.1.2",
+    "hidapi>=0.14.0.post4",
     "ipykernel>=6.29.5",
     "ipywidgets>=8.1.7",
     "jupyter>=1.1.1",
@@ -14,7 +15,12 @@ dependencies = [
     "mne-qt-browser>=0.6.1",
     "mne[hdf5]>=1.6.1",
     "plotly>=6.2.0",
+    "pycryptodome>=3.23.0",
+    "pylsl>=1.16.2",
     "seaborn>=0.13.2",
     "setuptools>=75.3.2",
     "wheel>=0.45.1",
 ]
+
+
+
