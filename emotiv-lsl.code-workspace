@@ -5,6 +5,12 @@
 		},
 		{
 			"path": "C:/Users/pho/repos/EmotivEpoc/CyKit"
+		},
+		{
+			"path": "../PhoLogToLabStreamingLayer"
+		},
+		{
+			"path": "../PhoLabStreamingReceiver"
 		}
 	],
 	"settings": {

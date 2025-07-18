@@ -567,8 +567,7 @@ Bus 001 Device 003: ID 05e3:0610 Genesys Logic, Inc. Hub
 Bus 001 Device 009: ID 1234:ed02 Brain Actuated Technologies Emotiv EPOC Developer Headset Wireless Dongle
 Bus 001 Device 002: ID 0bda:5411 Realtek Semiconductor Corp. RTS5411 Hub
 Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
-(lsl_env) halechr@RDLU0039:~/repos/emotiv-lsl$ sudo chmod 0666 /dev/hidraw
-chmod: cannot access '/dev/hidraw': No such file or directory
+
 (lsl_env) halechr@RDLU0039:~/repos/emotiv-lsl$ sudo chmod 0666 /dev/hidraw*
 (lsl_env) halechr@RDLU0039:~/repos/emotiv-lsl$ python main.py 
 crypto_key: bytearray(b'6566565666756557')
