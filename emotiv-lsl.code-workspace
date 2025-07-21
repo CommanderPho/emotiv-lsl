@@ -11,6 +11,9 @@
 		},
 		{
 			"path": "../PhoLabStreamingReceiver"
+		},
+		{
+			"path": "../bsl"
 		}
 	],
 	"settings": {
