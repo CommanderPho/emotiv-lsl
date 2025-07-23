@@ -28,6 +28,6 @@ Start-Sleep -Seconds 5
 
 # Launch the viewer component
 Write-Host "Starting BSL Viewer..." -ForegroundColor Cyan
-Start-CommandWindow -Title "BSL Viewer" -Command "cd '$repoRoot'; micromamba activate lsl_env; bsl_stream_viewer"
+Start-CommandWindow -Title "BSL Viewer" -Command "cd '$repoRoot'; micromamba activate lsl_env; bsl_stream_viewer --dir '\\vmware-host\Shared Folders\Emotiv Epoc EEG Project\EEG Recordings - Any\EEG Recordings - Dropbox\EmotivEpocX_EEGRecordings'"
 
 Write-Host "All components launched successfully!" -ForegroundColor Green
