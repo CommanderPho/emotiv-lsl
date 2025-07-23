@@ -4,9 +4,6 @@
 			"path": "."
 		},
 		{
-			"path": "C:/Users/pho/repos/EmotivEpoc/CyKit"
-		},
-		{
 			"path": "../PhoLogToLabStreamingLayer"
 		},
 		{
@@ -14,6 +11,9 @@
 		},
 		{
 			"path": "../bsl"
+		},
+		{
+			"path": "../CyKit"
 		}
 	],
 	"settings": {

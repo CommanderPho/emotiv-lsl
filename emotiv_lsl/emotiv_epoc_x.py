@@ -29,8 +29,7 @@ class EmotivEpocX(EmotivBase):
         return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])
 
     def get_stream_info(self) -> StreamInfo:
-        ch_names = ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7',
-                    'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
+        ch_names = ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
         n_channels = len(ch_names)
 
         info = StreamInfo('Epoc X', 'EEG', n_channels, SRATE, 'float32')
@@ -49,6 +48,14 @@ class EmotivEpocX(EmotivBase):
         return info
 
     def decode_data(self, data) -> list:
+        """ 
+        From `CyKit/Examples/example_epoc_plus.py`
+            join_data = ''.join(map(chr, data[1:]))
+            data = self.cipher.decrypt(bytes(join_data,'latin-1')[0:32])
+            if str(data[1]) == "32": # No Gyro Data.
+                return
+
+        """
         data = [el ^ 0x55 for el in data]
         data = self.cipher.decrypt(bytearray(data))
 
