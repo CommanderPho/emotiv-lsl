@@ -154,7 +154,7 @@ mamba install -c conda-forge liblsl
 pip install -r requirements_for_mamba.txt
 python main.py
 sudo apt update
-sudo apt install -y libhidapi-dev libhidapi-hidraw0 libhidapi-libusb0 libusb-1.0-0-dev build-essential
+sudo apt install -y libhidapi-dev libhidapi-hidraw0 libhidapi-libusb0 libusb-1.0-0-dev build-essential libpugixml-dev qt6-base-dev freeglut3-dev
 sudo apt update
 ls
 python main.py
@@ -249,5 +249,12 @@ bytearray(b'6566565666756557')
 ## List services
 powershell Get-Service | Format-Table Name, DisplayName, Status
 
+
+```
+
+
+# Required Python Packages
+```bash
+mne_qt_browser mne-lsl
 
 ```

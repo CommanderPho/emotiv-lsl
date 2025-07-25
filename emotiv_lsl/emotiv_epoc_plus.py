@@ -2,37 +2,59 @@ import hid
 from Crypto.Cipher import AES
 from pylsl import StreamInfo
 from attrs import define, field, Factory
-
 from emotiv_lsl.emotiv_base import EmotivBase
 from config import SRATE
 
+
 @define(slots=False)
-class EmotivEpocX(EmotivBase):
+class EmotivEpocPlus(EmotivBase):
+    """ 
+    from CyKit
+    'C:/Users/pho/repos/CyKit/Examples/example_epoc_x_win.py'
+
+    """
     READ_SIZE: int = field(default=32)
-    device_name: str = field(default='Emotiv Epoc X')
+    device_name: str = field(default='Emotiv Epoc+')
+
+    is_fourteen_bit_mode: bool = field(default=False)
+
 
     def __attrs_post_init__(self):
+        ## immediately calls the self.get_crypto_key() function to try and set self.cypher
         self.cipher = AES.new(self.get_crypto_key(), AES.MODE_ECB)
-                
+        
+
     def get_hid_device(self):
         for device in hid.enumerate():
             if device.get('manufacturer_string', '') == 'Emotiv' and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
                 return device
-        raise Exception('Emotiv Epoc X not found')
+        raise Exception('Emotiv Epoc+ not found')
 
     def get_crypto_key(self) -> bytearray:
         serial = self.get_hid_device()['serial_number']
-        self.serial_number = serial
+        
+        # EPOC+ in 16-bit Mode.
+        if not self.is_fourteen_bit_mode:
+            k = ['\0'] * 16
+            k = [sn[-1],sn[-2],sn[-2],sn[-3],sn[-3],sn[-3],sn[-2],sn[-4],sn[-1],sn[-4],sn[-2],sn[-2],sn[-4],sn[-4],sn[-2],sn[-1]]
+        else:
+            # EPOC+ in 14-bit Mode.
+            k = [sn[-1],00,sn[-2],21,sn[-3],00,sn[-4],12,sn[-3],00,sn[-2],68,sn[-1],00,sn[-2],88]
+            
+        self.key = str(''.join(k))
+        self.cipher = AES.new(self.key.encode("utf8"), AES.MODE_ECB)
+        
         sn = bytearray()
         for i in range(0, len(serial)):
             sn += bytearray([ord(serial[i])])
+
         return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])
 
     def get_stream_info(self) -> StreamInfo:
         ch_names = ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
         n_channels = len(ch_names)
 
-        info = StreamInfo('Epoc X', 'EEG', n_channels, SRATE, 'float32')
+        info = StreamInfo('Epoc+', 'EEG', n_channels, SRATE, 'float32')
         chns = info.desc().append_child("channels")
         for label in ch_names:
             ch = chns.append_child("channel")
@@ -56,8 +78,17 @@ class EmotivEpocX(EmotivBase):
                 return
 
         """
-        data = [el ^ 0x55 for el in data]
-        data = self.cipher.decrypt(bytearray(data))
+        ## Epoc X
+        # data = [el ^ 0x55 for el in data]
+        # data = self.cipher.decrypt(bytearray(data))
+        
+        ## Epoc+
+        join_data = ''.join(map(chr, data[1:]))
+        data = self.cipher.decrypt(bytes(join_data,'latin-1')[0:32])
+        if str(data[1]) == "32": # No Gyro Data.
+            return
+        
+
 
         packet_data = ""
         for i in range(2, 16, 2):

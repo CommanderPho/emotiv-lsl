@@ -2,6 +2,18 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../PhoLogToLabStreamingLayer"
+		},
+		{
+			"path": "../PhoLabStreamingReceiver"
+		},
+		{
+			"path": "../bsl"
+		},
+		{
+			"path": "../CyKit"
 		}
 	],
 	"settings": {
