@@ -11,8 +11,7 @@ class EmotivEpocXPyShark(EmotivEpocX):
         self.delimiter = ','
 
         self.cipher = AES.new(self.get_crypto_key(), AES.MODE_ECB)
-        self.capture = pyshark.LiveCapture(
-            interface='XHC20', bpf_filter='len == 72')
+        self.capture = pyshark.LiveCapture(interface='XHC20', bpf_filter='len == 72')
         print(self.capture)
 
     def validate_data(self, data) -> bool:
