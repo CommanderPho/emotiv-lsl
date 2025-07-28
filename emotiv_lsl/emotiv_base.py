@@ -1,5 +1,6 @@
 from typing import Any
 import hid
+import logging
 from pylsl import StreamInfo, StreamOutlet
 from attrs import define, field, Factory
 
@@ -41,8 +42,21 @@ class EmotivBase():
         outlet = StreamOutlet(self.get_stream_info())
         device = self.get_hid_device()
         hid_device = hid.Device(path=device['path'])
+        
+        logger = logging.getLogger(f'emotiv.{self.device_name.replace(" ", "_").lower()}')
+        packet_count = 0
+        
         while True:
             data = hid_device.read(self.READ_SIZE)
+            packet_count += 1
+            
             if self.validate_data(data):
+                logger.debug(f"Packet #{packet_count}: Valid data packet, length={len(data)}")
                 decoded = self.decode_data(data)
-                outlet.push_sample(decoded)
+                if decoded is not None:
+                    logger.debug(f"Packet #{packet_count}: EEG data decoded, {len(decoded)} channels")
+                    outlet.push_sample(decoded)
+                else:
+                    logger.debug(f"Packet #{packet_count}: Motion/gyro data packet (skipped)")
+            else:
+                logger.debug(f"Packet #{packet_count}: Invalid data packet, length={len(data)}")

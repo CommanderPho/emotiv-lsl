@@ -1,4 +1,5 @@
 import hid
+import logging
 from Crypto.Cipher import AES
 from pylsl import StreamInfo
 from attrs import define, field, Factory
