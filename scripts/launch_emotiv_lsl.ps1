@@ -3,6 +3,11 @@
 # Direct launcher for Emotiv LSL
 Write-Host "Launching Emotiv LSL components..." -ForegroundColor Green
 
+Write-Host "Stopping Official Emotiv services..." -ForegroundColor Yellow
+if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) { Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs; exit }
+# Start-Process powershell -Verb RunAs
+Stop-Service -Name "Emotiv*" -Verbose
+
 # Get the absolute path to the repository root directory
 $repoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $repoRoot
@@ -28,6 +33,6 @@ Start-Sleep -Seconds 5
 
 # Launch the viewer component
 Write-Host "Starting BSL Viewer..." -ForegroundColor Cyan
-Start-CommandWindow -Title "BSL Viewer" -Command "cd '$repoRoot'; micromamba activate lsl_env; bsl_stream_viewer --dir '\\vmware-host\Shared Folders\Emotiv Epoc EEG Project\EEG Recordings - Any\EEG Recordings - Dropbox\EmotivEpocX_EEGRecordings'"
+Start-CommandWindow -Title "BSL Viewer" -Command "cd '$repoRoot'; micromamba activate lsl_env; bsl_stream_viewer" # --dir '\\vmware-host\Shared Folders\Emotiv Epoc EEG Project\EEG Recordings - Any\EEG Recordings - Dropbox\EmotivEpocX_EEGRecordings'
 
 Write-Host "All components launched successfully!" -ForegroundColor Green
