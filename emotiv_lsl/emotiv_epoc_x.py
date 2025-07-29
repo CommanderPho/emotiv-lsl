@@ -142,8 +142,7 @@ class EmotivEpocX(EmotivBase):
                 pos2 = motion_positions[i + 1]
                 if pos1 < len(data) and pos2 < len(data):
                     # Use EPOC+ gyro conversion formula from CyKit
-                    value = ((8191.88296790168 + (data[pos1] * 1.00343814821)) + 
-                            ((data[pos2] - 128.00001) * 64.00318037383))
+                    value = ((8191.88296790168 + (data[pos1] * 1.00343814821)) +  ((data[pos2] - 128.00001) * 64.00318037383))
                     motion_data.append(value)
         
         # Return first 6 values as [AccX, AccY, AccZ, GyroX, GyroY, GyroZ]
