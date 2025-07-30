@@ -5,7 +5,7 @@ from pylsl import StreamInfo
 from attrs import define, field, Factory
 
 from emotiv_lsl.emotiv_base import EmotivBase
-from config import SRATE
+from config import MOTION_SRATE, SRATE
 
 @define(slots=False)
 class EmotivEpocX(EmotivBase):
@@ -34,7 +34,7 @@ class EmotivEpocX(EmotivBase):
         ch_names = ['AccX', 'AccY', 'AccZ', 'GyroX', 'GyroY', 'GyroZ']
         n_channels = len(ch_names)
         
-        info = StreamInfo('Epoc X Motion', 'Motion', n_channels, SRATE, 'float32')
+        info = StreamInfo('Epoc X Motion', 'Motion', n_channels, MOTION_SRATE, 'float32')
         chns = info.desc().append_child("channels")
         
         # Add accelerometer channels
@@ -151,7 +151,7 @@ class EmotivEpocX(EmotivBase):
             # Apply scaling factors based on ICM-20948 specs
             acc_scale = 1.0 / 16384.0  # ±2g range
             gyro_scale = 1.0 / 131.0   # ±250 deg/s range
-            
+            self.has_motion_data = True ## indicate we got motion data    
             return [
                 motion_data[0] * acc_scale,  # AccX
                 motion_data[1] * acc_scale,  # AccY  

@@ -12,6 +12,8 @@ class EmotivBase():
     delimiter: str = field(default=',')
     cipher: Any = field(init=False)
     
+    has_motion_data: bool = field(default=False)
+
     # def __attrs_post_init__(self):
     #     self.cipher = Cipher(self.serial_number)
 
@@ -32,6 +34,10 @@ class EmotivBase():
     def get_stream_info(self) -> StreamInfo:
         pass
 
+    def get_motion_stream_info(self) -> StreamInfo:
+        """Create LSL stream info for motion sensor data (accelerometer + gyroscope)"""
+        pass
+
     def decode_data(self) -> list:
         pass
 
@@ -41,12 +47,14 @@ class EmotivBase():
     def main_loop(self):
         # Create EEG outlet
         eeg_outlet = StreamOutlet(self.get_stream_info())
-        
+
         # Create motion outlet if the device supports it
         motion_outlet = None
-        if hasattr(self, 'get_motion_stream_info'):
+        if self.has_motion_data:
             motion_outlet = StreamOutlet(self.get_motion_stream_info())
-        
+            print(f'Setup motion data')
+
+
         device = self.get_hid_device()
         hid_device = hid.Device(path=device['path'])
         
@@ -62,9 +70,17 @@ class EmotivBase():
                 decoded = self.decode_data(data)
                 if decoded is not None:
                     # Check if this is motion data (based on number of channels)
-                    if len(decoded) == 6 and motion_outlet is not None:
+                    if len(decoded) == 6:
                         logger.debug(f"Packet #{packet_count}: Motion data decoded, {len(decoded)} channels")
+                        if not self.has_motion_data:
+                            self.has_motion_data = True
+                            logger.debug(f'got first motion data!')
+
+                        if motion_outlet is None:
+                            motion_outlet = StreamOutlet(self.get_motion_stream_info())
+                            logger.debug(f'set up motion outlet!')
                         motion_outlet.push_sample(decoded)
+
                     elif len(decoded) == 14:  # EEG data has 14 channels
                         logger.debug(f"Packet #{packet_count}: EEG data decoded, {len(decoded)} channels")
                         eeg_outlet.push_sample(decoded)
