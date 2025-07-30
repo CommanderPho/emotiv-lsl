@@ -34,7 +34,7 @@ class EmotivEpocX(EmotivBase):
         ch_names = ['AccX', 'AccY', 'AccZ', 'GyroX', 'GyroY', 'GyroZ']
         n_channels = len(ch_names)
         
-        info = StreamInfo('Epoc X Motion', 'Motion', n_channels, MOTION_SRATE, 'float32')
+        info = StreamInfo('Epoc X Motion', 'SIGNAL', n_channels, MOTION_SRATE, 'float32') ## Use the generic "SIGNAL" type to so that it works with the default `bsl_stream_viewer`
         chns = info.desc().append_child("channels")
         
         # Add accelerometer channels
