@@ -1,4 +1,5 @@
 import hid
+import logging
 from Crypto.Cipher import AES
 from pylsl import StreamInfo
 from attrs import define, field, Factory
@@ -86,6 +87,7 @@ class EmotivEpocPlus(EmotivBase):
         join_data = ''.join(map(chr, data[1:]))
         data = self.cipher.decrypt(bytes(join_data,'latin-1')[0:32])
         if str(data[1]) == "32": # No Gyro Data.
+            logging.getLogger('emotiv.epoc_plus').debug(f"Motion/gyro packet detected: data[1]={data[1]}")
             return
         
 

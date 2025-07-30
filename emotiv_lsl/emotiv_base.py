@@ -1,5 +1,6 @@
 from typing import Any
 import hid
+import logging
 from pylsl import StreamInfo, StreamOutlet
 from attrs import define, field, Factory
 
@@ -38,11 +39,38 @@ class EmotivBase():
         pass
 
     def main_loop(self):
-        outlet = StreamOutlet(self.get_stream_info())
+        # Create EEG outlet
+        eeg_outlet = StreamOutlet(self.get_stream_info())
+        
+        # Create motion outlet if the device supports it
+        motion_outlet = None
+        if hasattr(self, 'get_motion_stream_info'):
+            motion_outlet = StreamOutlet(self.get_motion_stream_info())
+        
         device = self.get_hid_device()
         hid_device = hid.Device(path=device['path'])
+        
+        logger = logging.getLogger(f'emotiv.{self.device_name.replace(" ", "_").lower()}')
+        packet_count = 0
+        
         while True:
             data = hid_device.read(self.READ_SIZE)
+            packet_count += 1
+            
             if self.validate_data(data):
+                logger.debug(f"Packet #{packet_count}: Valid data packet, length={len(data)}")
                 decoded = self.decode_data(data)
-                outlet.push_sample(decoded)
+                if decoded is not None:
+                    # Check if this is motion data (based on number of channels)
+                    if len(decoded) == 6 and motion_outlet is not None:
+                        logger.debug(f"Packet #{packet_count}: Motion data decoded, {len(decoded)} channels")
+                        motion_outlet.push_sample(decoded)
+                    elif len(decoded) == 14:  # EEG data has 14 channels
+                        logger.debug(f"Packet #{packet_count}: EEG data decoded, {len(decoded)} channels")
+                        eeg_outlet.push_sample(decoded)
+                    else:
+                        logger.debug(f"Packet #{packet_count}: Unknown data type with {len(decoded)} channels")
+                else:
+                    logger.debug(f"Packet #{packet_count}: Motion/gyro data packet (skipped)")
+            else:
+                logger.debug(f"Packet #{packet_count}: Invalid data packet, length={len(data)}")

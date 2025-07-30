@@ -1,3 +1,4 @@
+import logging
 import pyshark
 from Crypto.Cipher import AES
 from pylsl import StreamOutlet
@@ -7,12 +8,11 @@ from emotiv_lsl.emotiv_epoc_x import EmotivEpocX
 
 class EmotivEpocXPyShark(EmotivEpocX):
 
-    def __init__(self) -> None:
+    # def __init__(self) -> None:
+    def __attrs_post_init__(self):
         self.delimiter = ','
-
         self.cipher = AES.new(self.get_crypto_key(), AES.MODE_ECB)
-        self.capture = pyshark.LiveCapture(
-            interface='XHC20', bpf_filter='len == 72')
+        self.capture = pyshark.LiveCapture(interface='XHC20', bpf_filter='len == 72')
         print(self.capture)
 
     def validate_data(self, data) -> bool:
@@ -31,3 +31,5 @@ class EmotivEpocXPyShark(EmotivEpocX):
                 data = bytearray.fromhex(data)
                 decoded = self.decode_data(data)
                 outlet.push_sample(decoded)
+
+
