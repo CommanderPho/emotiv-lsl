@@ -258,3 +258,16 @@ powershell Get-Service | Format-Table Name, DisplayName, Status
 mne_qt_browser mne-lsl
 
 ```
+
+
+# Linux
+```bash
+sudo chmod 0666 /dev/hidraw*
+mamba activate lsl_env
+```
+
+```bash
+omamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X' --record_dir '\\vmware-host\Shared Folders\Emotiv Epoc EEG Project\EEG Recordings - Any\EEG Recordings - Dropbox\EmotivEpocX_EEGRecordings' --bp_low 1.0 --bp_high 58.0;
+
+
+```
