@@ -88,7 +88,8 @@ class EmotivEpocX(EmotivBase):
         
         # Check for motion/gyro packet
         if str(data[1]) == "32":
-            logging.getLogger('emotiv.epoc_x').debug(f"Motion/gyro packet detected: data[1]={data[1]}")
+            if self.enable_debug_logging:
+                logging.getLogger('emotiv.epoc_x').debug(f"Motion/gyro packet detected: data[1]={data[1]}")
             return self.decode_motion_data(data)
 
         packet_data = ""

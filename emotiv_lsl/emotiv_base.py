@@ -13,7 +13,8 @@ class EmotivBase():
     cipher: Any = field(init=False)
     
     has_motion_data: bool = field(default=False)
-
+    enable_debug_logging: bool = field(default=False)
+    
     # def __attrs_post_init__(self):
     #     self.cipher = Cipher(self.serial_number)
 
@@ -66,12 +67,14 @@ class EmotivBase():
             packet_count += 1
             
             if self.validate_data(data):
-                logger.debug(f"Packet #{packet_count}: Valid data packet, length={len(data)}")
+                if self.enable_debug_logging:
+                    logger.debug(f"Packet #{packet_count}: Valid data packet, length={len(data)}")
                 decoded = self.decode_data(data)
                 if decoded is not None:
                     # Check if this is motion data (based on number of channels)
                     if len(decoded) == 6:
-                        logger.debug(f"Packet #{packet_count}: Motion data decoded, {len(decoded)} channels")
+                        if self.enable_debug_logging:
+                            logger.debug(f"Packet #{packet_count}: Motion data decoded, {len(decoded)} channels")
                         if not self.has_motion_data:
                             self.has_motion_data = True
                             logger.debug(f'got first motion data!')
@@ -82,7 +85,8 @@ class EmotivBase():
                         motion_outlet.push_sample(decoded)
 
                     elif len(decoded) == 14:  # EEG data has 14 channels
-                        logger.debug(f"Packet #{packet_count}: EEG data decoded, {len(decoded)} channels")
+                        if self.enable_debug_logging:
+                            logger.debug(f"Packet #{packet_count}: EEG data decoded, {len(decoded)} channels")
                         eeg_outlet.push_sample(decoded)
                     else:
                         logger.debug(f"Packet #{packet_count}: Unknown data type with {len(decoded)} channels")
