@@ -258,3 +258,12 @@ powershell Get-Service | Format-Table Name, DisplayName, Status
 mne_qt_browser mne-lsl
 
 ```
+
+
+# Linux
+```bash
+sudo chmod 0666 /dev/hidraw*
+mamba activate lsl_env
+mamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X' --record-dir '/media/halechr/MAX/cloud/University of Michigan Dropbox/Pho Hale/Personal/LabRecordedEEG' --bp_low 1.0 --bp_high 58.0;
+
+```
