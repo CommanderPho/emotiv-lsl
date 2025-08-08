@@ -13,7 +13,7 @@ class EmotivBase():
     delimiter: str = field(default=',')
     cipher: Any = field(init=False)
     
-    should_disable_motion_outlet: bool = field(default=False)
+    should_disable_motion_outlet: bool = field(default=True)
     has_motion_data: bool = field(default=False)
     enable_debug_logging: bool = field(default=False)
     
