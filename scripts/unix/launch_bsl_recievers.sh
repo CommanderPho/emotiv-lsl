@@ -29,9 +29,9 @@ MOTION_RECORDING_PATH='/media/halechr/MAX/cloud/University of Michigan Dropbox/P
 
 echo -e "${GREEN}Launching Emotiv LSL components...${RESET}"
 
-# ----------  Determine repository root ----------
-SCRIPT_PATH=$(realpath "${BASH_SOURCE[0]}")
-REPO_ROOT=$(dirname "$(dirname "$SCRIPT_PATH")")   # two levels up
+# ----------  Determine repository root (portable, no realpath) ----------
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
 # ----------  Helper: open a new terminal window ----------
@@ -39,6 +39,14 @@ cd "$REPO_ROOT"
 start_command_window() {
   local title=$1
   local cmd=$2
+
+  # macOS (Darwin) – use Terminal.app via AppleScript
+  if [[ "$(uname)" == "Darwin" ]]; then
+    # Escape double quotes for AppleScript command payload
+    local escaped_cmd=${cmd//\"/\\\"}
+    osascript -e "tell application \"Terminal\" to do script \"printf '\\e]1;${title}\\a'; echo -e '${CYAN}Starting ${title}...${RESET}'; ${escaped_cmd}\"" >/dev/null
+    return 0
+  fi
 
   if command -v gnome-terminal &>/dev/null; then
     gnome-terminal --title="$title" -- bash -c "echo -e '${CYAN}Starting $title...${RESET}'; $cmd; exec bash"
@@ -53,24 +61,44 @@ start_command_window() {
 }
 
 
+# ----------  Build optional recording args (pass only if directory exists) ----------
+EEG_RECORDING_ARG=""
+MOTION_RECORDING_ARG=""
+
+if [[ -n "${EEG_RECORDING_PATH:-}" ]]; then
+  if [[ -d "$EEG_RECORDING_PATH" ]]; then
+    EEG_RECORDING_ARG="--record_dir '$EEG_RECORDING_PATH'"
+  else
+    echo -e "${YELLOW}EEG_RECORDING_PATH does not exist, skipping --record_dir for EEG: '$EEG_RECORDING_PATH'${RESET}"
+  fi
+fi
+
+if [[ -n "${MOTION_RECORDING_PATH:-}" ]]; then
+  if [[ -d "$MOTION_RECORDING_PATH" ]]; then
+    MOTION_RECORDING_ARG="--record_dir '$MOTION_RECORDING_PATH'"
+  else
+    echo -e "${YELLOW}MOTION_RECORDING_PATH does not exist, skipping --record_dir for Motion: '$MOTION_RECORDING_PATH'${RESET}"
+  fi
+fi
+
 # ----------  Launch the Viewers ----------
 echo -e "${CYAN}Starting BSL viewers...${RESET}"
-# NOTE: Update the --record_dir paths to valid Unix paths.
+
 start_command_window "BSL EEG Viewer" "
   cd '$REPO_ROOT'
   $PKG_MANAGER activate lsl_env
-  bsl_stream_viewer  \
+  bsl_stream_viewer \
      --stream_name 'Epoc X' \
-     --record_dir '$EEG_RECORDING_PATH' \ 
+     ${EEG_RECORDING_ARG} \
      --bp_low 1.0 --bp_high 58.0
 "
 
 start_command_window "BSL Motion Viewer" "
   cd '$REPO_ROOT'
   $PKG_MANAGER activate lsl_env
-  bsl_stream_viewer  \
+  bsl_stream_viewer \
      --stream_name 'Epoc X Motion' \
-     --record_dir '$MOTION_RECORDING_PATH' \ 
+     ${MOTION_RECORDING_ARG} \
      --bp_off
 "
 
