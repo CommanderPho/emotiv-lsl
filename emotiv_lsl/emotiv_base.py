@@ -1,6 +1,7 @@
 from typing import Any
 import hid
 import logging
+import platform
 from pylsl import StreamInfo, StreamOutlet
 from attrs import define, field, Factory
 
@@ -12,11 +13,15 @@ class EmotivBase():
     delimiter: str = field(default=',')
     cipher: Any = field(init=False)
     
+    should_disable_motion_outlet: bool = field(default=False)
     has_motion_data: bool = field(default=False)
     enable_debug_logging: bool = field(default=False)
     
-    # def __attrs_post_init__(self):
-    #     self.cipher = Cipher(self.serial_number)
+    def __attrs_post_init__(self):
+        # Disable motion outlet on Linux platform
+        if platform.system().lower() == 'linux':
+            self.should_disable_motion_outlet = True
+        #     self.cipher = Cipher(self.serial_number)
 
     def get_hid_device(self):
         for device in hid.enumerate():
@@ -52,7 +57,8 @@ class EmotivBase():
         # Create motion outlet if the device supports it
         motion_outlet = None
         if self.has_motion_data:
-            motion_outlet = StreamOutlet(self.get_motion_stream_info())
+            if not self.should_disable_motion_outlet:
+                motion_outlet = StreamOutlet(self.get_motion_stream_info())
             print(f'Setup motion data')
 
 
@@ -78,11 +84,12 @@ class EmotivBase():
                         if not self.has_motion_data:
                             self.has_motion_data = True
                             logger.debug(f'got first motion data!')
-
-                        if motion_outlet is None:
-                            motion_outlet = StreamOutlet(self.get_motion_stream_info())
-                            logger.debug(f'set up motion outlet!')
-                        motion_outlet.push_sample(decoded)
+                        
+                        if (not self.should_disable_motion_outlet):
+                            if (motion_outlet is None):
+                                motion_outlet = StreamOutlet(self.get_motion_stream_info())
+                                logger.debug(f'set up motion outlet!')
+                            motion_outlet.push_sample(decoded)
 
                     elif len(decoded) == 14:  # EEG data has 14 channels
                         if self.enable_debug_logging:
