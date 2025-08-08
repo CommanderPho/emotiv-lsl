@@ -1,38 +1,72 @@
 #!/bin/bash
 
-# Mot-clé pour identifier le dongle Emotiv dans la description lsusb
+# Keyword to identify the Emotiv dongle in device descriptions
 EMOTIV_KEYWORD="Emotiv"
 
-echo "Recherche du dongle Emotiv dans lsusb..."
+echo "Searching for Emotiv dongle..."
 
-# Trouver la ligne contenant le dongle Emotiv
-DEVICE_INFO=$(lsusb | grep "$EMOTIV_KEYWORD")
-
-if [ -z "$DEVICE_INFO" ]; then
-    echo "Erreur : Dongle Emotiv introuvable. Vérifiez qu'il est bien connecté."
-    exit 1
+# Detect operating system
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    echo "Detected macOS system"
+    
+    # Use system_profiler to find USB devices on macOS
+    DEVICE_INFO=$(system_profiler SPUSBDataType | grep -A 5 -B 5 "$EMOTIV_KEYWORD" | head -20)
+    
+    if [ -z "$DEVICE_INFO" ]; then
+        echo "Error: Emotiv dongle not found. Please verify it is properly connected."
+        exit 1
+    fi
+    
+    echo "Emotiv device detected:"
+    echo "$DEVICE_INFO"
+    
+    # Extract USB ID from system_profiler output
+    USB_ID=$(system_profiler SPUSBDataType | grep -A 10 "$EMOTIV_KEYWORD" | grep "Product ID" | head -1 | awk '{print $3}')
+    
+    if [ -z "$USB_ID" ]; then
+        echo "Error: Could not extract USB ID from device information."
+        exit 1
+    fi
+    
+    echo "USB ID detected: $USB_ID"
+    
+    # On macOS, we'll use the USB ID for device mapping
+    DEVICE_PATH="/dev/usb/$USB_ID"
+    
+else
+    # Linux
+    echo "Detected Linux system"
+    
+    # Find the line containing the Emotiv dongle
+    DEVICE_INFO=$(lsusb | grep "$EMOTIV_KEYWORD")
+    
+    if [ -z "$DEVICE_INFO" ]; then
+        echo "Error: Emotiv dongle not found. Please verify it is properly connected."
+        exit 1
+    fi
+    
+    echo "Emotiv device detected: $DEVICE_INFO"
+    
+    # Extract Bus, Device and ID
+    BUS=$(echo "$DEVICE_INFO" | awk '{print $2}')
+    DEVICE=$(echo "$DEVICE_INFO" | awk '{print $4}' | sed 's/://')
+    USB_ID=$(echo "$DEVICE_INFO" | awk '{print $6}')
+    
+    # Build the complete path
+    DEVICE_PATH="/dev/bus/usb/$BUS/$DEVICE"
+    
+    # Verify the device exists
+    if [ ! -e "$DEVICE_PATH" ]; then
+        echo "Error: Device path ($DEVICE_PATH) does not exist."
+        exit 1
+    fi
+    
+    echo "USB path detected: $DEVICE_PATH"
+    echo "USB ID detected: $USB_ID"
 fi
 
-echo "Périphérique Emotiv détecté : $DEVICE_INFO"
-
-# Extraire Bus, Device et ID
-BUS=$(echo "$DEVICE_INFO" | awk '{print $2}')
-DEVICE=$(echo "$DEVICE_INFO" | awk '{print $4}' | sed 's/://')
-USB_ID=$(echo "$DEVICE_INFO" | awk '{print $6}')
-
-# Construire le chemin complet
-DEVICE_PATH="/dev/bus/usb/$BUS/$DEVICE"
-
-# Vérifier si le périphérique existe
-if [ ! -e "$DEVICE_PATH" ]; then
-    echo "Erreur : Le chemin du périphérique ($DEVICE_PATH) n'existe pas."
-    exit 1
-fi
-
-echo "Chemin USB détecté : $DEVICE_PATH"
-echo "ID USB détecté : $USB_ID"
-
-# Générer ou mettre à jour docker-compose.yml
+# Generate or update docker-compose.yml
 DOCKER_COMPOSE_FILE="docker-compose.yml"
 
 cat > $DOCKER_COMPOSE_FILE <<EOF
@@ -55,9 +89,9 @@ services:
     command: ["conda", "run", "-n", "lsl_env", "python", "main.py"]
 EOF
 
-echo "Fichier $DOCKER_COMPOSE_FILE mis à jour avec succès !"
-echo "Le dongle Emotiv est configuré pour Docker."
+echo "File $DOCKER_COMPOSE_FILE updated successfully!"
+echo "The Emotiv dongle is configured for Docker."
 
-# Lancer Docker Compose avec le périphérique détecté
-echo "Lancement de Docker Compose..."
+# Launch Docker Compose with the detected device
+echo "Launching Docker Compose..."
 docker-compose up --build
