@@ -267,3 +267,53 @@ mamba activate lsl_env
 mamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X' --record-dir '/media/halechr/MAX/cloud/University of Michigan Dropbox/Pho Hale/Personal/LabRecordedEEG' --bp_low 1.0 --bp_high 58.0;
 
 ```
+
+
+# macOS
+```bash
+brew install hidapi
+uv remove hid
+uv add hidapi
+
+```
+
+
+
+### Not working `pip install hid`
+```bash
+➜  emotiv-lsl git:(main) uv add hid
+Resolved 219 packages in 735ms
+Prepared 1 package in 50ms
+Installed 1 package in 5ms
+ + hid==1.0.8
+➜  emotiv-lsl git:(main) ✗ uv sync --all-extras
+Resolved 219 packages in 1ms
+Audited 147 packages in 0.07ms
+➜  emotiv-lsl git:(main) ✗ source .venv/bin/activate
+(emotiv-lsl) ➜  emotiv-lsl git:(main) ✗ python main.py
+Traceback (most recent call last):
+  File "/Users/pho/repo/EmotivEpocRepos2025/emotiv-lsl/main.py", line 2, in <module>
+    from emotiv_lsl.emotiv_epoc_x import EmotivEpocX
+  File "/Users/pho/repo/EmotivEpocRepos2025/emotiv-lsl/emotiv_lsl/emotiv_epoc_x.py", line 1, in <module>
+    import hid
+  File "/Users/pho/repo/EmotivEpocRepos2025/emotiv-lsl/.venv/lib/python3.11/site-packages/hid/__init__.py", line 31, in <module>
+    raise ImportError(error)
+ImportError: Unable to load any of the following libraries:libhidapi-hidraw.so libhidapi-hidraw.so.0 libhidapi-libusb.so libhidapi-libusb.so.0 libhidapi-iohidmanager.so libhidapi-iohidmanager.so.0 libhidapi.dylib hidapi.dll libhidapi-0.dll
+```
+
+### Thought it was close to working, but got
+```bash
+(emotiv-lsl) ➜  emotiv-lsl git:(main) ✗ python main.py
+crypto_key: bytearray(b'6566565666756557')
+Generated source_id: '-4294060996428985742' for StreamInfo with name 'Epoc X', type 'EEG', channel_count 14, nominal_srate 128, and channel_format 1.
+...
+ff05:113d:6fdd:2c17:a643:ffe2:1bd1:3cd2 to interface ::1 (Can't assign requested address)
+Traceback (most recent call last):
+  File "/Users/pho/repo/EmotivEpocRepos2025/emotiv-lsl/main.py", line 14, in <module>
+    emotiv_epoc_x.main_loop()
+  File "/Users/pho/repo/EmotivEpocRepos2025/emotiv-lsl/emotiv_lsl/emotiv_base.py", line 59, in main_loop
+    hid_device = hid.Device(path=device['path'])
+                 ^^^^^^^^^^
+AttributeError: module 'hid' has no attribute 'Device'. Did you mean: 'device'?
+(emotiv-lsl) ➜  emotiv-lsl git:(main) ✗
+```
