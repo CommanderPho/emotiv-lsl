@@ -103,15 +103,13 @@ class EmotivEpocX(EmotivBase):
         packet_data = ""
         for i in range(2, 16, 2):
             packet_data = packet_data + \
-                str(self.convertEPOC_PLUS(
-                    str(data[i]), str(data[i+1]))) + self.delimiter
+                str(self.convertEPOC_PLUS(str(data[i]), str(data[i+1]))) + self.delimiter
 
         for i in range(18, len(data), 2):
             packet_data = packet_data + \
-                str(self.convertEPOC_PLUS(
-                    str(data[i]), str(data[i+1]))) + self.delimiter
+                str(self.convertEPOC_PLUS(str(data[i]), str(data[i+1]))) + self.delimiter
 
-        packet_data = packet_data[:-len(self.delimiter)]
+        packet_data = packet_data[:-len(self.delimiter)]  # Remove extra delimiter.
         packet_data = packet_data.split(self.delimiter)
         packet_data = [float(i) for i in packet_data]
 
@@ -129,7 +127,6 @@ class EmotivEpocX(EmotivBase):
 
         # ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
         return packet_data
-
 
     def decode_motion_data(self, data) -> list:
         """Decode motion sensor data from gyro/accelerometer packet

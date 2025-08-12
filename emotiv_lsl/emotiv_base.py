@@ -42,6 +42,24 @@ class EmotivBase():
     def get_lsl_outlet_motion_stream_info(self) -> StreamInfo:
         """Create LSL stream info for motion sensor data (accelerometer + gyroscope)"""
         pass
+    
+    def get_lsl_outlet_motion_stream_info(self) -> StreamInfo:
+        """Create LSL stream info for motion sensor data (accelerometer + gyroscope)"""
+        pass
+
+    def get_lsl_outlet_raw_debugging_stream_info(self) -> StreamInfo:
+        """ 
+        raw_packet_outlet = None
+        if self.is_reverse_engineer_mode:
+            raw_packet_outlet = StreamOutlet(self.get_lsl_outlet_raw_debugging_stream_info())
+            print(f'Setup raw_packet_outlet (for reverse-engineering)')
+            
+        """
+        packet_size = 32  # bytes
+        dtype = 'int8'
+        info = StreamInfo('Epoc X DebugRaw', type="Raw", channel_count=packet_size, nominal_srate=0, channel_format=dtype, source_id="debug_raw_001")
+        return info
+        
 
     def decode_data(self) -> list:
         raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
@@ -99,8 +117,13 @@ class EmotivBase():
         if self.has_motion_data:
             motion_outlet = StreamOutlet(self.get_lsl_outlet_motion_stream_info())
             print(f'Setup motion outlet')
-
-
+            
+        # Create motion outlet if the device supports it
+        raw_packet_outlet = None
+        if self.is_reverse_engineer_mode:
+            raw_packet_outlet = StreamOutlet(self.get_lsl_outlet_raw_debugging_stream_info())
+            print(f'Setup raw_packet_outlet (for reverse-engineering)')
+            
         ## Get the device info
         device = self.get_hid_device()
         hid_device = hid.Device(path=device['path'])
@@ -115,9 +138,15 @@ class EmotivBase():
             data = hid_device.read(self.READ_SIZE)
             packet_count += 1
             
+            if (self.is_reverse_engineer_mode and (raw_packet_outlet is not None)):
+                ## output the raw data
+                raw_packet_outlet.push_sample(data)
+
+
             if self.validate_data(data):
                 if self.enable_debug_logging:
                     logger.debug(f"Packet #{packet_count}: Valid data packet, length={len(data)}")
+                    
                 decoded = self.decode_data(data)
                 if decoded is not None:
                     # Check if this is motion data (based on number of channels)
@@ -140,6 +169,6 @@ class EmotivBase():
                     else:
                         logger.debug(f"Packet #{packet_count}: Unknown data type with {len(decoded)} channels")
                 else:
-                    logger.debug(f"Packet #{packet_count}: Motion/gyro data packet (skipped)")
+                    logger.debug(f"Packet #{packet_count}: self.decode_data(data) failed -- data packet (skipped)")
             else:
                 logger.debug(f"Packet #{packet_count}: Invalid data packet, length={len(data)}")
