@@ -231,7 +231,8 @@ python main.py
    ```ps1
 micromamba activate lsl_env
 bsl_stream_viewer
-   ```
+bsl_stream_viewer --stream_name 'Epoc X Motion' --bp_off;
+```
 
 
 # 2025-07-01 - Got Epoc X Info
@@ -317,3 +318,4 @@ Traceback (most recent call last):
 AttributeError: module 'hid' has no attribute 'Device'. Did you mean: 'device'?
 (emotiv-lsl) ➜  emotiv-lsl git:(main) ✗
 ```
+
