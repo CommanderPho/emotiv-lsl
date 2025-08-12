@@ -11,9 +11,12 @@ class EmotivBase():
     device_name: str = field(default='UnknownEmotivHeadset')
     delimiter: str = field(default=',')
     cipher: Any = field(init=False)
+    KeyModel: int = field(default = 1)
+    
     
     has_motion_data: bool = field(default=False)
     enable_debug_logging: bool = field(default=False)
+    is_reverse_engineer_mode: bool = field(default=False)
     
     # def __attrs_post_init__(self):
     #     self.cipher = Cipher(self.serial_number)
@@ -30,36 +33,82 @@ class EmotivBase():
 
 
     def get_hid_device(self):
+        raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
         pass
 
-    def get_stream_info(self) -> StreamInfo:
+    def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
         pass
 
-    def get_motion_stream_info(self) -> StreamInfo:
+    def get_lsl_outlet_motion_stream_info(self) -> StreamInfo:
         """Create LSL stream info for motion sensor data (accelerometer + gyroscope)"""
         pass
 
     def decode_data(self) -> list:
+        raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
         pass
 
     def validate_data(self, data) -> bool:
+        raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
         pass
+
+
+    ## CyKit Conversion/Decoding/Data Packet Parsing Functions
+    def convertEPOC_PLUS(self, value_1, value_2):
+        edk_value = "%.8f" % (((int(value_1) * .128205128205129) + 4201.02564096001) + ((int(value_2) - 128) * 32.82051289))
+        return edk_value
+    
+    # In the EEG class, add a method to extract quality values
+    def extractQualityValues(self, data):
+        # Quality values are typically in specific bytes of the data packet
+        # For EPOC/EPOC+, quality values are often in data[16] and data[17]
+        quality_values = {}
+
+        # Different models store quality data differently
+        if self.KeyModel == 2 or self.KeyModel == 1:  # Epoc
+            # Extract quality values for each channel
+            # This is a simplified example - actual implementation depends on the device's data format
+            quality_values = {'AF3': data[16] & 0xF, 'F7': (data[16] >> 4) & 0xF, 
+                            'F3': data[17] & 0xF, 'FC5': (data[17] >> 4) & 0xF,
+                            'T7': data[18] & 0xF, 'P7': (data[18] >> 4) & 0xF,
+                            'O1': data[19] & 0xF, 'O2': (data[19] >> 4) & 0xF,
+                            'P8': data[20] & 0xF, 'T8': (data[20] >> 4) & 0xF,
+                            'FC6': data[21] & 0xF, 'F4': (data[21] >> 4) & 0xF,
+                            'F8': data[22] & 0xF, 'AF4': (data[22] >> 4) & 0xF}
+        elif (self.KeyModel == 6) or (self.KeyModel == 5) or (self.KeyModel == 8):  # Epoc+ or EpocX
+            # Similar extraction for EPOC+
+            quality_values = {'AF3': data[16] & 0xF, 'F7': (data[16] >> 4) & 0xF, 
+                            'F3': data[17] & 0xF, 'FC5': (data[17] >> 4) & 0xF,
+                            'T7': data[18] & 0xF, 'P7': (data[18] >> 4) & 0xF,
+                            'O1': data[19] & 0xF, 'O2': (data[19] >> 4) & 0xF,
+                            'P8': data[20] & 0xF, 'T8': (data[20] >> 4) & 0xF,
+                            'FC6': data[21] & 0xF, 'F4': (data[21] >> 4) & 0xF,
+                            'F8': data[22] & 0xF, 'AF4': (data[22] >> 4) & 0xF}
+        else:
+            raise NotImplementedError(self.KeyModel)
+
+        return quality_values
+        
+
 
     def main_loop(self):
         # Create EEG outlet
-        eeg_outlet = StreamOutlet(self.get_stream_info())
+        eeg_outlet = StreamOutlet(self.get_lsl_outlet_eeg_stream_info())
 
         # Create motion outlet if the device supports it
         motion_outlet = None
         if self.has_motion_data:
-            motion_outlet = StreamOutlet(self.get_motion_stream_info())
-            print(f'Setup motion data')
+            motion_outlet = StreamOutlet(self.get_lsl_outlet_motion_stream_info())
+            print(f'Setup motion outlet')
 
 
+        ## Get the device info
         device = self.get_hid_device()
         hid_device = hid.Device(path=device['path'])
-        
         logger = logging.getLogger(f'emotiv.{self.device_name.replace(" ", "_").lower()}')
+        
+        if self.is_reverse_engineer_mode:
+            logger.debug(f'hid_device: {hid_device}\n\twith path: {device["path"]}\n')
+        
         packet_count = 0
         
         while True:
@@ -80,7 +129,7 @@ class EmotivBase():
                             logger.debug(f'got first motion data!')
 
                         if motion_outlet is None:
-                            motion_outlet = StreamOutlet(self.get_motion_stream_info())
+                            motion_outlet = StreamOutlet(self.get_lsl_outlet_motion_stream_info())
                             logger.debug(f'set up motion outlet!')
                         motion_outlet.push_sample(decoded)
 

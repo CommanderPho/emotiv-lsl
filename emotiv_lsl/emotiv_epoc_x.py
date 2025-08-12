@@ -11,13 +11,21 @@ from config import MOTION_SRATE, SRATE
 class EmotivEpocX(EmotivBase):
     READ_SIZE: int = field(default=32)
     device_name: str = field(default='Emotiv Epoc X')
-
+    KeyModel: int = field(default = 8) # call Epoc X keymodel 8 to extend CyKit's keymodel system
+    
+    is_reverse_engineer_mode: bool = field(default=True)
+    
+    
     def __attrs_post_init__(self):
         self.cipher = AES.new(self.get_crypto_key(), AES.MODE_ECB)
-                
+        if self.is_reverse_engineer_mode:
+            print('starting with reverse engineer mode!')
+            # self.READ_SIZE = 64
+                           
+
     def get_hid_device(self):
         for device in hid.enumerate():
-            if device.get('manufacturer_string', '') == 'Emotiv' and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
+            if (device.get('manufacturer_string', '') == 'Emotiv') and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
                 return device
         raise Exception('Emotiv Epoc X not found')
 
@@ -29,7 +37,7 @@ class EmotivEpocX(EmotivBase):
             sn += bytearray([ord(serial[i])])
         return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])
 
-    def get_motion_stream_info(self) -> StreamInfo:
+    def get_lsl_outlet_motion_stream_info(self) -> StreamInfo:
         """Create LSL stream info for motion sensor data (accelerometer + gyroscope)"""
         ch_names = ['AccX', 'AccY', 'AccZ', 'GyroX', 'GyroY', 'GyroZ']
         n_channels = len(ch_names)
@@ -55,7 +63,7 @@ class EmotivEpocX(EmotivBase):
             
         return info
 
-    def get_stream_info(self) -> StreamInfo:
+    def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
         ch_names = ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
         n_channels = len(ch_names)
 
@@ -122,10 +130,6 @@ class EmotivEpocX(EmotivBase):
         # ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
         return packet_data
 
-    def convertEPOC_PLUS(self, value_1, value_2):
-        edk_value = "%.8f" % (((int(value_1) * .128205128205129) +
-                              4201.02564096001) + ((int(value_2) - 128) * 32.82051289))
-        return edk_value
 
     def decode_motion_data(self, data) -> list:
         """Decode motion sensor data from gyro/accelerometer packet
@@ -165,4 +169,7 @@ class EmotivEpocX(EmotivBase):
         return [0.0] * 6  # Return zeros if not enough data
 
     def validate_data(self, data) -> bool:
-        return len(data) == 32
+        if self.is_reverse_engineer_mode:
+            return (len(data) == self.READ_SIZE)
+        else:
+            return len(data) == 32

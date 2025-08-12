@@ -16,6 +16,7 @@ class EmotivEpocPlus(EmotivBase):
     """
     READ_SIZE: int = field(default=32)
     device_name: str = field(default='Emotiv Epoc+')
+    KeyModel: int = field(default = 6) # 5 or 6 for Epoc+ according to CyKit
 
     is_fourteen_bit_mode: bool = field(default=False)
 
@@ -51,7 +52,7 @@ class EmotivEpocPlus(EmotivBase):
 
         return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])
 
-    def get_stream_info(self) -> StreamInfo:
+    def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
         ch_names = ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
         n_channels = len(ch_names)
 
