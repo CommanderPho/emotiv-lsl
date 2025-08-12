@@ -13,7 +13,7 @@ class EmotivEpocX(EmotivBase):
     device_name: str = field(default='Emotiv Epoc X')
     KeyModel: int = field(default = 8) # call Epoc X keymodel 8 to extend CyKit's keymodel system
     
-    is_reverse_engineer_mode: bool = field(default=True)
+    is_reverse_engineer_mode: bool = field(default=False)
     
     
     def __attrs_post_init__(self):
