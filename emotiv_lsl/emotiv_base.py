@@ -1,6 +1,8 @@
-from typing import Any
+from typing import Dict, List, Tuple, Optional, Callable, Union, Any
 import hid
 import logging
+import numpy as np
+from nptyping import NDArray
 from pylsl import StreamInfo, StreamOutlet
 from attrs import define, field, Factory
 
@@ -17,10 +19,22 @@ class EmotivBase():
     has_motion_data: bool = field(default=False)
     enable_debug_logging: bool = field(default=False)
     is_reverse_engineer_mode: bool = field(default=False)
-    
+    enable_electrode_quality_stream: bool = field(default=False)
+
     # def __attrs_post_init__(self):
     #     self.cipher = Cipher(self.serial_number)
+    
 
+    @property
+    def eeg_channel_names(self) -> List[str]:
+        """The eeg_channel_names property."""
+        return ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
+
+    @property
+    def eeg_quality_channel_names(self) -> List[str]:
+        """The eeg_quality_channel_names property."""
+        return [f'q{a_name}' for a_name in self.eeg_channel_names] ## add the 'q' prefix, like ['qAF3', 'qF7', ...]
+        
     def get_hid_device(self):
         for device in hid.enumerate():
             if device.get('manufacturer_string', '') == 'Emotiv' and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
@@ -37,15 +51,13 @@ class EmotivBase():
         pass
 
     def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
+        """Create LSL stream for EEG sensor data"""
         pass
 
     def get_lsl_outlet_motion_stream_info(self) -> StreamInfo:
         """Create LSL stream info for motion sensor data (accelerometer + gyroscope)"""
         pass
     
-    def get_lsl_outlet_motion_stream_info(self) -> StreamInfo:
-        """Create LSL stream info for motion sensor data (accelerometer + gyroscope)"""
-        pass
 
     def get_lsl_outlet_raw_debugging_stream_info(self) -> StreamInfo:
         """ 
@@ -59,6 +71,12 @@ class EmotivBase():
         dtype = 'int8'
         info = StreamInfo('Epoc X DebugRaw', type="Raw", channel_count=packet_size, nominal_srate=0, channel_format=dtype, source_id="debug_raw_001")
         return info
+    
+
+    def get_lsl_outlet_electrode_quality_stream_info(self) -> StreamInfo:
+        """ Create LSL stream for EEG sensor quality data. Only active if `self.enable_electrode_quality_stream` is True """
+        pass
+    
         
 
     def decode_data(self) -> list:
@@ -76,16 +94,16 @@ class EmotivBase():
         return edk_value
     
     # In the EEG class, add a method to extract quality values
-    def extractQualityValues(self, data):
+    def extractQualityValues(self, data, return_as_array: bool=True) -> Union[NDArray, Dict[str, float]]:
         # Quality values are typically in specific bytes of the data packet
         # For EPOC/EPOC+, quality values are often in data[16] and data[17]
-        quality_values = {}
+        quality_values_dict = {}
 
         # Different models store quality data differently
         if self.KeyModel == 2 or self.KeyModel == 1:  # Epoc
             # Extract quality values for each channel
             # This is a simplified example - actual implementation depends on the device's data format
-            quality_values = {'AF3': data[16] & 0xF, 'F7': (data[16] >> 4) & 0xF, 
+            quality_values_dict = {'AF3': data[16] & 0xF, 'F7': (data[16] >> 4) & 0xF, 
                             'F3': data[17] & 0xF, 'FC5': (data[17] >> 4) & 0xF,
                             'T7': data[18] & 0xF, 'P7': (data[18] >> 4) & 0xF,
                             'O1': data[19] & 0xF, 'O2': (data[19] >> 4) & 0xF,
@@ -94,7 +112,7 @@ class EmotivBase():
                             'F8': data[22] & 0xF, 'AF4': (data[22] >> 4) & 0xF}
         elif (self.KeyModel == 6) or (self.KeyModel == 5) or (self.KeyModel == 8):  # Epoc+ or EpocX
             # Similar extraction for EPOC+
-            quality_values = {'AF3': data[16] & 0xF, 'F7': (data[16] >> 4) & 0xF, 
+            quality_values_dict = {'AF3': data[16] & 0xF, 'F7': (data[16] >> 4) & 0xF, 
                             'F3': data[17] & 0xF, 'FC5': (data[17] >> 4) & 0xF,
                             'T7': data[18] & 0xF, 'P7': (data[18] >> 4) & 0xF,
                             'O1': data[19] & 0xF, 'O2': (data[19] >> 4) & 0xF,
@@ -104,7 +122,11 @@ class EmotivBase():
         else:
             raise NotImplementedError(self.KeyModel)
 
-        return quality_values
+        if return_as_array and (quality_values_dict is not None):
+            return np.array([quality_values_dict[k] for k in self.eeg_quality_channel_names]) ## ensures consistent channel order
+        else:
+            # returnt he dict
+            return quality_values_dict
         
 
 
@@ -124,6 +146,8 @@ class EmotivBase():
             raw_packet_outlet = StreamOutlet(self.get_lsl_outlet_raw_debugging_stream_info())
             print(f'Setup raw_packet_outlet (for reverse-engineering)')
             
+        eeg_quality_outlet = None
+        
         ## Get the device info
         device = self.get_hid_device()
         hid_device = hid.Device(path=device['path'])
@@ -147,7 +171,19 @@ class EmotivBase():
                 if self.enable_debug_logging:
                     logger.debug(f"Packet #{packet_count}: Valid data packet, length={len(data)}")
                     
-                decoded = self.decode_data(data)
+                if self.enable_electrode_quality_stream:
+                    decoded, eeg_quality_data = self.decode_data(data)
+                    
+                    if (eeg_quality_data is not None) and len(eeg_quality_data) == 14:
+                        print(f'got eeg quality data: {eeg_quality_data}')
+                        if eeg_quality_outlet is None:
+                            eeg_quality_outlet = StreamOutlet(self.get_lsl_outlet_electrode_quality_stream_info())
+                            logger.debug(f'set up EEG Sensor Quality outlet!')
+                        eeg_quality_outlet.push_sample(eeg_quality_data)
+                            
+                else:
+                    decoded = self.decode_data(data)
+                    
                 if decoded is not None:
                     # Check if this is motion data (based on number of channels)
                     if len(decoded) == 6:

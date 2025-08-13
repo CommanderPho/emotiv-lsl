@@ -64,7 +64,7 @@ class EmotivEpocX(EmotivBase):
         return info
 
     def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
-        ch_names = ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
+        ch_names = self.eeg_channel_names # ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
         n_channels = len(ch_names)
 
         info = StreamInfo('Epoc X', 'EEG', n_channels, SRATE, 'float32')
@@ -81,6 +81,30 @@ class EmotivEpocX(EmotivBase):
         cap.append_child_value("labelscheme", "10-20")
 
         return info
+
+
+    def get_lsl_outlet_electrode_quality_stream_info(self) -> StreamInfo:
+        """ Create LSL stream for EEG sensor quality data. Only active if `self.enable_electrode_quality_stream` is True """
+        ch_names = self.eeg_quality_channel_names # [f'q{a_name}' for a_name in ch_names] ## add the 'q' prefix, like ['qAF3', 'qF7', ...]
+        n_channels = len(ch_names)
+
+        info = StreamInfo('Epoc X eQuality', type="Raw", channel_count=n_channels, nominal_srate=SRATE, channel_format='float32', source_id=f"{self.device_name}_{self.KeyModel}_{self.get_crypto_key()}")
+        chns = info.desc().append_child("channels")
+        for label in ch_names:
+            ch = chns.append_child("channel")
+            ch.append_child_value("label", label)
+            ch.append_child_value("unit", "microvolts")
+            ch.append_child_value("type", "RAW")
+            ch.append_child_value("scaling_factor", "1")
+
+        cap = info.desc().append_child("cap")
+        cap.append_child_value("name", "easycap-M1")
+        cap.append_child_value("labelscheme", "10-20")
+
+        return info
+    
+    
+
 
     def decode_data(self, data) -> list:
         """ 
@@ -99,6 +123,20 @@ class EmotivEpocX(EmotivBase):
             if self.enable_debug_logging:
                 logging.getLogger('emotiv.epoc_x').debug(f"Motion/gyro packet detected: data[1]={data[1]}")
             return self.decode_motion_data(data)
+
+
+        ## Check for quality values
+        eeg_quality_data = None
+        if self.enable_electrode_quality_stream:
+            try:
+                eeg_quality_data = self.extractQualityValues(data=data, return_as_array=True)
+
+            except Exception as e:
+                print(f'getting EEG sensor quality values failed with error: {e}')
+                eeg_quality_data = None
+                pass
+                # raise e
+            
 
         packet_data = ""
         for i in range(2, 16, 2):
@@ -126,7 +164,11 @@ class EmotivEpocX(EmotivBase):
         packet_data[10], packet_data[12] = packet_data[12], packet_data[10]
 
         # ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
-        return packet_data
+        if self.enable_electrode_quality_stream:
+            return packet_data, eeg_quality_data
+        else:
+            return packet_data
+
 
     def decode_motion_data(self, data) -> list:
         """Decode motion sensor data from gyro/accelerometer packet

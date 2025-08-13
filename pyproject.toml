@@ -29,6 +29,7 @@ dependencies = [
     "attrs>=25.3.0",
     "pyinstaller>=6.14.2",
     "pyqtgraph>=0.13.3",
+    "nptyping>=2.5.0",
 ]
 
 
