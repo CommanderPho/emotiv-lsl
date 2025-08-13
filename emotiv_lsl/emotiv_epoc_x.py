@@ -122,8 +122,7 @@ class EmotivEpocX(EmotivBase):
         if str(data[1]) == "32":
             if self.enable_debug_logging:
                 logging.getLogger('emotiv.epoc_x').debug(f"Motion/gyro packet detected: data[1]={data[1]}")
-            return self.decode_motion_data(data)
-
+            return self.decode_motion_data(data), None ## no `eeg_quality_data` for motion packets
 
         ## Check for quality values
         eeg_quality_data = None
@@ -164,10 +163,10 @@ class EmotivEpocX(EmotivBase):
         packet_data[10], packet_data[12] = packet_data[12], packet_data[10]
 
         # ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
-        if self.enable_electrode_quality_stream:
-            return packet_data, eeg_quality_data
-        else:
-            return packet_data
+        # if self.enable_electrode_quality_stream:
+        return packet_data, eeg_quality_data
+        # else:
+        #     return packet_data
 
 
     def decode_motion_data(self, data) -> list:

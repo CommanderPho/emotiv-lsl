@@ -19,7 +19,7 @@ class EmotivBase():
     has_motion_data: bool = field(default=False)
     enable_debug_logging: bool = field(default=False)
     is_reverse_engineer_mode: bool = field(default=False)
-    enable_electrode_quality_stream: bool = field(default=False)
+    enable_electrode_quality_stream: bool = field(default=True)
 
     # def __attrs_post_init__(self):
     #     self.cipher = Cipher(self.serial_number)
@@ -123,7 +123,7 @@ class EmotivBase():
             raise NotImplementedError(self.KeyModel)
 
         if return_as_array and (quality_values_dict is not None):
-            return np.array([quality_values_dict[k] for k in self.eeg_quality_channel_names]) ## ensures consistent channel order
+            return np.array([quality_values_dict[k] for k in self.eeg_channel_names]) ## ensures consistent channel order
         else:
             # returnt he dict
             return quality_values_dict
@@ -170,19 +170,22 @@ class EmotivBase():
             if self.validate_data(data):
                 if self.enable_debug_logging:
                     logger.debug(f"Packet #{packet_count}: Valid data packet, length={len(data)}")
-                    
-                if self.enable_electrode_quality_stream:
-                    decoded, eeg_quality_data = self.decode_data(data)
-                    
-                    if (eeg_quality_data is not None) and len(eeg_quality_data) == 14:
-                        print(f'got eeg quality data: {eeg_quality_data}')
-                        if eeg_quality_outlet is None:
-                            eeg_quality_outlet = StreamOutlet(self.get_lsl_outlet_electrode_quality_stream_info())
-                            logger.debug(f'set up EEG Sensor Quality outlet!')
-                        eeg_quality_outlet.push_sample(eeg_quality_data)
-                            
-                else:
-                    decoded = self.decode_data(data)
+
+                # print(f'data: {data}')
+                decoded, eeg_quality_data = self.decode_data(data)
+
+                # if self.enable_electrode_quality_stream:
+                # decoded, eeg_quality_data = self.decode_data(data)
+                
+                if (eeg_quality_data is not None) and len(eeg_quality_data) == 14:
+                    logger.debug(f'got eeg quality data: {eeg_quality_data}')
+                    if eeg_quality_outlet is None:
+                        eeg_quality_outlet = StreamOutlet(self.get_lsl_outlet_electrode_quality_stream_info())
+                        logger.debug(f'set up EEG Sensor Quality outlet!')
+                    eeg_quality_outlet.push_sample(eeg_quality_data)
+                        
+                # else:
+                # decoded = self.decode_data(data)
                     
                 if decoded is not None:
                     # Check if this is motion data (based on number of channels)
