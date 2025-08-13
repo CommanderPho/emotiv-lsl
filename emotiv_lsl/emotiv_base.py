@@ -171,14 +171,11 @@ class EmotivBase():
                 if self.enable_debug_logging:
                     logger.debug(f"Packet #{packet_count}: Valid data packet, length={len(data)}")
 
-                # print(f'data: {data}')
                 decoded, eeg_quality_data = self.decode_data(data)
-
-                # if self.enable_electrode_quality_stream:
-                # decoded, eeg_quality_data = self.decode_data(data)
                 
                 if (eeg_quality_data is not None) and len(eeg_quality_data) == 14:
-                    logger.debug(f'got eeg quality data: {eeg_quality_data}')
+                    if self.is_reverse_engineer_mode:
+                        logger.debug(f'got eeg quality data: {eeg_quality_data}')
                     if eeg_quality_outlet is None:
                         eeg_quality_outlet = StreamOutlet(self.get_lsl_outlet_electrode_quality_stream_info())
                         logger.debug(f'set up EEG Sensor Quality outlet!')
