@@ -79,7 +79,7 @@ class EmotivBase():
     
         
 
-    def decode_data(self) -> list:
+    def decode_data(self) -> Tuple[List, Optional[List]]:
         raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
         pass
 

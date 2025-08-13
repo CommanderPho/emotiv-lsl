@@ -1,6 +1,8 @@
 import hid
 import logging
 from Crypto.Cipher import AES
+from typing import Dict, List, Tuple, Optional, Callable, Union, Any
+from nptyping import NDArray
 from pylsl import StreamInfo
 from attrs import define, field, Factory
 
@@ -106,7 +108,7 @@ class EmotivEpocX(EmotivBase):
     
 
 
-    def decode_data(self, data) -> list:
+    def decode_data(self, data) -> Tuple[List, Optional[List]]:
         """ 
         From `CyKit/Examples/example_epoc_plus.py`
             join_data = ''.join(map(chr, data[1:]))
@@ -162,11 +164,7 @@ class EmotivEpocX(EmotivBase):
         # swap positions of FC6 and F8
         packet_data[10], packet_data[12] = packet_data[12], packet_data[10]
 
-        # ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
-        # if self.enable_electrode_quality_stream:
         return packet_data, eeg_quality_data
-        # else:
-        #     return packet_data
 
 
     def decode_motion_data(self, data) -> list:
