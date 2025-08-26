@@ -2,7 +2,7 @@ import hid
 import logging
 from Crypto.Cipher import AES
 from typing import Dict, List, Tuple, Optional, Callable, Union, Any
-from nptyping import NDArray
+# from nptyping import NDArray
 from pylsl import StreamInfo
 from attrs import define, field, Factory
 
