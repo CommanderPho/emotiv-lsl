@@ -333,5 +333,6 @@ pip install -r requirements_for_mamba.txt
 micromamba install -c conda-forge attrs nptyping typing_extensions pyqtgraph pyinstaller
 
 cp C:\Users\pho\repos\emotiv-lsl\hidapi-win\x64\hidapi.dll C:\Users\pho\micromamba\envs\lsl_env\Library\bin\hidapi.dll
+pip install -e ..\bsl
 
 ```
