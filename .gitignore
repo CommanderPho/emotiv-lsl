@@ -7,3 +7,5 @@ __pycache__/
 .venv
 .venv.7z
 *.pcl
+dist
+build
