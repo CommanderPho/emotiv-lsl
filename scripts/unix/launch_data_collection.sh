@@ -60,13 +60,14 @@ sudo chmod 0666 /dev/hidraw*
 # ----------  Determine repository root ----------
 SCRIPT_PATH=$(realpath "${BASH_SOURCE[0]}")
 REPO_ROOT=$(dirname "$(dirname "$SCRIPT_PATH")")   # two levels up
-cd "$REPO_ROOT"
-
+echo "SCRIPT_PATH: $SCRIPT_PATH"
+echo "REPO_ROOT: $REPO_ROOT"
+# cd "$REPO_ROOT"
 
 # ----------  Launch the LSL server ----------
 echo -e "${CYAN}Starting LSL Server...${RESET}"
-cd '$REPO_ROOT'
+# cd '$REPO_ROOT'
 $PKG_MANAGER activate lsl_env
-python '$REPO_ROOT/main.py'
+python main.py
 
 echo -e "${GREEN}All components launched successfully!${RESET}"
