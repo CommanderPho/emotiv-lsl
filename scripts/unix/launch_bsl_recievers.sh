@@ -12,20 +12,28 @@ CYAN=$(tput setaf 6)
 RESET=$(tput sgr0)
 
 ## Switch between micromamba/mamba/conda based on what is installed:
-if command -v mamba &> /dev/null; then
+if command -v conda &> /dev/null; then
+    PKG_MANAGER="conda"
+    eval "$(conda shell.bash hook)"
+elif command -v mamba &> /dev/null; then
     PKG_MANAGER="mamba"
+    eval "$(mamba shell hook --shell=bash)"
 elif command -v micromamba &> /dev/null; then
     PKG_MANAGER="micromamba"
-elif command -v conda &> /dev/null; then
-    PKG_MANAGER="conda"
+    eval "$(micromamba shell hook --shell=bash)"
 else
     echo "Error: None of mamba, micromamba, or conda found." >&2
     exit 1
 fi
 
+# # Diba Lab Workstation:
+# EEG_RECORDING_PATH='/media/halechr/MAX/cloud/University of Michigan Dropbox/Pho Hale/Personal/LabRecordedEEG'
+# MOTION_RECORDING_PATH='/media/halechr/MAX/cloud/University of Michigan Dropbox/Pho Hale/Personal/LabRecordedEEG/MOTION_RECORDINGS'
 
-EEG_RECORDING_PATH='/media/halechr/MAX/cloud/University of Michigan Dropbox/Pho Hale/Personal/LabRecordedEEG'
-MOTION_RECORDING_PATH='/media/halechr/MAX/cloud/University of Michigan Dropbox/Pho Hale/Personal/LabRecordedEEG/MOTION_RECORDINGS'
+# rMBP 2025-08-27:
+EEG_RECORDING_ARG="/Users/pho/Dropbox (Personal)/Databases/UnparsedData/EmotivEpocX_EEGRecordings" # rMBP
+MOTION_RECORDING_ARG="/Users/pho/Dropbox (Personal)/Databases/UnparsedData/EmotivEpocX_EEGRecordings/MOTION_RECORDINGS" # rMBP
+
 
 echo -e "${GREEN}Launching Emotiv LSL components...${RESET}"
 
@@ -42,11 +50,10 @@ start_command_window() {
 
   # macOS (Darwin) – use Terminal.app via AppleScript
   if [[ "$(uname)" == "Darwin" ]]; then
-    # Escape double quotes for AppleScript command payload
-    local escaped_cmd=${cmd//\"/\\\"}
-    osascript -e "tell application \"Terminal\" to do script \"printf '\\e]1;${title}\\a'; echo -e '${CYAN}Starting ${title}...${RESET}'; ${escaped_cmd}\"" >/dev/null
-    return 0
+      osascript -e "tell application \"Terminal\" to do script \"bash -lc 'echo -e \\\"${CYAN}Starting ${title}...${RESET}\\\"; ${cmd//$'\n'/ }'\""
+      return 0
   fi
+
 
   if command -v gnome-terminal &>/dev/null; then
     gnome-terminal --title="$title" -- bash -c "echo -e '${CYAN}Starting $title...${RESET}'; $cmd; exec bash"
@@ -62,8 +69,6 @@ start_command_window() {
 
 
 # ----------  Build optional recording args (pass only if directory exists) ----------
-EEG_RECORDING_ARG=""
-MOTION_RECORDING_ARG=""
 
 if [[ -n "${EEG_RECORDING_PATH:-}" ]]; then
   if [[ -d "$EEG_RECORDING_PATH" ]]; then
