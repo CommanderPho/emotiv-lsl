@@ -4,6 +4,7 @@
 # ------------------------------------------------------------
 
 
+
 # sudo chmod 0666 /dev/hidraw*
 # python main.py
 
@@ -18,15 +19,17 @@ RESET=$(tput sgr0)
 ## Switch between micromamba/mamba/conda based on what is installed:
 if command -v conda &> /dev/null; then
     PKG_MANAGER="conda"
+    eval "$(conda shell.bash hook)"
 elif command -v mamba &> /dev/null; then
     PKG_MANAGER="mamba"
+    eval "$(mamba shell hook --shell=bash)"
 elif command -v micromamba &> /dev/null; then
     PKG_MANAGER="micromamba"
+    eval "$(micromamba shell hook --shell=bash)"
 else
     echo "Error: None of mamba, micromamba, or conda found." >&2
     exit 1
 fi
-
 
 # EEG_RECORDING_PATH='/media/halechr/MAX/cloud/University of Michigan Dropbox/Pho Hale/Personal/LabRecordedEEG'
 # MOTION_RECORDING_PATH='/media/halechr/MAX/cloud/University of Michigan Dropbox/Pho Hale/Personal/LabRecordedEEG/MOTION_RECORDINGS'
