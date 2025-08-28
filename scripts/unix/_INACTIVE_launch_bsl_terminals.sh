@@ -4,7 +4,6 @@
 # ------------------------------------------------------------
 
 
-
 # sudo chmod 0666 /dev/hidraw*
 # python main.py
 
@@ -17,24 +16,24 @@ CYAN=$(tput setaf 6)
 RESET=$(tput sgr0)
 
 ## Switch between micromamba/mamba/conda based on what is installed:
-if command -v conda &> /dev/null; then
-    PKG_MANAGER="conda"
-    eval "$(conda shell.bash hook)"
-elif command -v mamba &> /dev/null; then
+if command -v mamba &> /dev/null; then
     PKG_MANAGER="mamba"
-    eval "$(mamba shell hook --shell=bash)"
 elif command -v micromamba &> /dev/null; then
     PKG_MANAGER="micromamba"
-    eval "$(micromamba shell hook --shell=bash)"
+elif command -v conda &> /dev/null; then
+    PKG_MANAGER="conda"
 else
     echo "Error: None of mamba, micromamba, or conda found." >&2
     exit 1
 fi
 
-# EEG_RECORDING_PATH='/media/halechr/MAX/cloud/University of Michigan Dropbox/Pho Hale/Personal/LabRecordedEEG'
-# MOTION_RECORDING_PATH='/media/halechr/MAX/cloud/University of Michigan Dropbox/Pho Hale/Personal/LabRecordedEEG/MOTION_RECORDINGS'
+
+EEG_RECORDING_PATH='/media/halechr/MAX/cloud/University of Michigan Dropbox/Pho Hale/Personal/LabRecordedEEG'
+MOTION_RECORDING_PATH='/media/halechr/MAX/cloud/University of Michigan Dropbox/Pho Hale/Personal/LabRecordedEEG/MOTION_RECORDINGS'
 
 echo -e "${GREEN}Launching Emotiv LSL components...${RESET}"
+
+
 
 echo -e "${YELLOW}Setting USB access permissions for '/dev/hidraw*' to 0666...${RESET}"
 sudo chmod 0666 /dev/hidraw*
@@ -63,14 +62,49 @@ sudo chmod 0666 /dev/hidraw*
 # ----------  Determine repository root ----------
 SCRIPT_PATH=$(realpath "${BASH_SOURCE[0]}")
 REPO_ROOT=$(dirname "$(dirname "$SCRIPT_PATH")")   # two levels up
-echo "SCRIPT_PATH: $SCRIPT_PATH"
-echo "REPO_ROOT: $REPO_ROOT"
-# cd "$REPO_ROOT"
+cd "$REPO_ROOT"
 
-# ----------  Launch the LSL server ----------
-echo -e "${CYAN}Starting LSL Server...${RESET}"
-# cd '$REPO_ROOT'
-$PKG_MANAGER activate lsl_env
-python main.py
+# ----------  Helper: open a new terminal window ----------
+# Tries common terminal emulators; falls back to background process.
+start_command_window() {
+  local title=$1
+  local cmd=$2
+
+  if command -v gnome-terminal &>/dev/null; then
+    gnome-terminal --title="$title" -- bash -c "echo -e '${CYAN}Starting $title...${RESET}'; $cmd; exec bash"
+  elif command -v konsole &>/dev/null; then
+    konsole --new-tab --hold -p tabtitle="$title" -e bash -c "echo -e '${CYAN}Starting $title...${RESET}'; $cmd"
+  elif command -v xterm &>/dev/null; then
+    xterm -T "$title" -e bash -c "echo -e '${CYAN}Starting $title...${RESET}'; $cmd; exec bash"
+  else
+    echo -e "${YELLOW}No GUI terminal found – running $title in background...${RESET}"
+    bash -c "$cmd" &
+  fi
+}
+
+# ----------  Wait a moment for the server ----------
+echo -e "${YELLOW}Waiting for server to initialize...${RESET}"
+sleep 5
+
+# ----------  Launch the Viewers ----------
+echo -e "${CYAN}Starting BSL viewers...${RESET}"
+# NOTE: Update the --record_dir paths to valid Unix paths.
+start_command_window "BSL EEG Viewer" "
+  cd '$REPO_ROOT'
+  $PKG_MANAGER activate lsl_env
+  bsl_stream_viewer  \
+     --stream_name 'Epoc X' \
+     --record_dir '$EEG_RECORDING_PATH' \ 
+     --bp_low 1.0 --bp_high 58.0
+"
+
+start_command_window "BSL Motion Viewer" "
+  cd '$REPO_ROOT'
+  $PKG_MANAGER activate lsl_env
+  bsl_stream_viewer  \
+     --stream_name 'Epoc X Motion' \
+     --record_dir '$MOTION_RECORDING_PATH' \ 
+     --bp_off
+"
 
 echo -e "${GREEN}All components launched successfully!${RESET}"
