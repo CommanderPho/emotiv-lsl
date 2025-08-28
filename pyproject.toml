@@ -5,7 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.8.10"
 dependencies = [
-    "bsl>=0.6.4",
     "cython>=3.1.2",
     "ipykernel>=6.29.5",
     "ipywidgets>=8.1.7",
@@ -27,7 +26,11 @@ dependencies = [
     "pyinstaller>=6.14.2",
     "pyqtgraph>=0.13.3",
     "nptyping>=2.5.0",
+    "bsl",
 ]
+
+[tool.uv.sources]
+bsl = { git = "https://github.com/CommanderPho/bsl.git" }
 
 
 
