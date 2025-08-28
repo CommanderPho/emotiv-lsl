@@ -46,6 +46,11 @@ class EmotivBase():
             'get_crypto_key method must be implemented in subclass')
 
 
+    def get_lsl_source_id(self) -> str:
+        return f"{self.device_name}_{self.KeyModel}_{self.get_crypto_key()}"
+
+
+
     def get_hid_device(self):
         raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
         pass

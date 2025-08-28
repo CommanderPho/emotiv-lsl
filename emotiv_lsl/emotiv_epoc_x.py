@@ -39,12 +39,16 @@ class EmotivEpocX(EmotivBase):
             sn += bytearray([ord(serial[i])])
         return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])
 
+    def get_lsl_source_id(self) -> str:
+        return f"{self.device_name}_{self.KeyModel}_{self.get_crypto_key()}"
+    
+
     def get_lsl_outlet_motion_stream_info(self) -> StreamInfo:
         """Create LSL stream info for motion sensor data (accelerometer + gyroscope)"""
         ch_names = ['AccX', 'AccY', 'AccZ', 'GyroX', 'GyroY', 'GyroZ']
         n_channels = len(ch_names)
         
-        info = StreamInfo('Epoc X Motion', 'SIGNAL', n_channels, MOTION_SRATE, 'float32') ## Use the generic "SIGNAL" type to so that it works with the default `bsl_stream_viewer`
+        info = StreamInfo('Epoc X Motion', type='SIGNAL', channel_count=n_channels, nominal_srate=MOTION_SRATE, channel_format='float32', source_id=self.get_lsl_source_id()) ## Use the generic "SIGNAL" type to so that it works with the default `bsl_stream_viewer`
         chns = info.desc().append_child("channels")
         
         # Add accelerometer channels
@@ -69,7 +73,7 @@ class EmotivEpocX(EmotivBase):
         ch_names = self.eeg_channel_names # ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
         n_channels = len(ch_names)
 
-        info = StreamInfo('Epoc X', 'EEG', n_channels, SRATE, 'float32')
+        info = StreamInfo('Epoc X', type='EEG', channel_count=n_channels, nominal_srate=SRATE, channel_format='float32', source_id=self.get_lsl_source_id())
         chns = info.desc().append_child("channels")
         for label in ch_names:
             ch = chns.append_child("channel")
@@ -84,13 +88,12 @@ class EmotivEpocX(EmotivBase):
 
         return info
 
-
     def get_lsl_outlet_electrode_quality_stream_info(self) -> StreamInfo:
         """ Create LSL stream for EEG sensor quality data. Only active if `self.enable_electrode_quality_stream` is True """
         ch_names = self.eeg_quality_channel_names # [f'q{a_name}' for a_name in ch_names] ## add the 'q' prefix, like ['qAF3', 'qF7', ...]
         n_channels = len(ch_names)
 
-        info = StreamInfo('Epoc X eQuality', type="Raw", channel_count=n_channels, nominal_srate=SRATE, channel_format='float32', source_id=f"{self.device_name}_{self.KeyModel}_{self.get_crypto_key()}")
+        info = StreamInfo('Epoc X eQuality', type="Raw", channel_count=n_channels, nominal_srate=SRATE, channel_format='float32', source_id=self.get_lsl_source_id())
         chns = info.desc().append_child("channels")
         for label in ch_names:
             ch = chns.append_child("channel")
