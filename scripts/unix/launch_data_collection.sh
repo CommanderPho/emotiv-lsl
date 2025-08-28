@@ -16,12 +16,12 @@ CYAN=$(tput setaf 6)
 RESET=$(tput sgr0)
 
 ## Switch between micromamba/mamba/conda based on what is installed:
-if command -v mamba &> /dev/null; then
+if command -v conda &> /dev/null; then
+    PKG_MANAGER="conda"
+elif command -v mamba &> /dev/null; then
     PKG_MANAGER="mamba"
 elif command -v micromamba &> /dev/null; then
     PKG_MANAGER="micromamba"
-elif command -v conda &> /dev/null; then
-    PKG_MANAGER="conda"
 else
     echo "Error: None of mamba, micromamba, or conda found." >&2
     exit 1
