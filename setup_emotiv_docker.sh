@@ -1,41 +1,101 @@
 #!/bin/bash
 
-# Mot-clé pour identifier le dongle Emotiv dans la description lsusb
+# Keyword to identify the Emotiv dongle in device descriptions
 EMOTIV_KEYWORD="Emotiv"
 
-echo "Recherche du dongle Emotiv dans lsusb..."
+echo "Searching for Emotiv dongle..."
 
-# Trouver la ligne contenant le dongle Emotiv
-DEVICE_INFO=$(lsusb | grep "$EMOTIV_KEYWORD")
-
-if [ -z "$DEVICE_INFO" ]; then
-    echo "Erreur : Dongle Emotiv introuvable. Vérifiez qu'il est bien connecté."
-    exit 1
+# Detect operating system
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    echo "Detected macOS system"
+    
+    # Use system_profiler to find USB devices on macOS
+    # Suppress system_profiler warnings by redirecting stderr
+    DEVICE_INFO=$(system_profiler SPUSBDataType 2>/dev/null | grep -A 5 -B 5 "$EMOTIV_KEYWORD" | head -20)
+    
+    if [ -z "$DEVICE_INFO" ]; then
+        echo "Error: Emotiv dongle not found. Please verify it is properly connected."
+        exit 1
+    fi
+    
+    echo "Emotiv device detected:"
+    echo "$DEVICE_INFO"
+    
+    # Extract USB ID from system_profiler output
+    USB_ID=$(system_profiler SPUSBDataType 2>/dev/null | grep -A 10 "$EMOTIV_KEYWORD" | grep "Product ID" | head -1 | sed 's/.*Product ID: 0x//')
+    
+    if [ -z "$USB_ID" ]; then
+        echo "Error: Could not extract USB ID from device information."
+        exit 1
+    fi
+    
+    # Convert hex to decimal for consistency
+    USB_ID_DECIMAL=$(printf "%d" "0x$USB_ID")
+    USB_ID=$USB_ID_DECIMAL
+    
+    echo "USB ID detected: $USB_ID"
+    
+    # On macOS, Docker has limited USB device access
+    # We'll use a different approach for macOS
+    DEVICE_PATH="/dev/null"
+    
+else
+    # Linux
+    echo "Detected Linux system"
+    
+    # Find the line containing the Emotiv dongle
+    DEVICE_INFO=$(lsusb | grep "$EMOTIV_KEYWORD")
+    
+    if [ -z "$DEVICE_INFO" ]; then
+        echo "Error: Emotiv dongle not found. Please verify it is properly connected."
+        exit 1
+    fi
+    
+    echo "Emotiv device detected: $DEVICE_INFO"
+    
+    # Extract Bus, Device and ID
+    BUS=$(echo "$DEVICE_INFO" | awk '{print $2}')
+    DEVICE=$(echo "$DEVICE_INFO" | awk '{print $4}' | sed 's/://')
+    USB_ID=$(echo "$DEVICE_INFO" | awk '{print $6}')
+    
+    # Build the complete path
+    DEVICE_PATH="/dev/bus/usb/$BUS/$DEVICE"
+    
+    # Verify the device exists
+    if [ ! -e "$DEVICE_PATH" ]; then
+        echo "Error: Device path ($DEVICE_PATH) does not exist."
+        exit 1
+    fi
+    
+    echo "USB path detected: $DEVICE_PATH"
+    echo "USB ID detected: $USB_ID"
 fi
 
-echo "Périphérique Emotiv détecté : $DEVICE_INFO"
-
-# Extraire Bus, Device et ID
-BUS=$(echo "$DEVICE_INFO" | awk '{print $2}')
-DEVICE=$(echo "$DEVICE_INFO" | awk '{print $4}' | sed 's/://')
-USB_ID=$(echo "$DEVICE_INFO" | awk '{print $6}')
-
-# Construire le chemin complet
-DEVICE_PATH="/dev/bus/usb/$BUS/$DEVICE"
-
-# Vérifier si le périphérique existe
-if [ ! -e "$DEVICE_PATH" ]; then
-    echo "Erreur : Le chemin du périphérique ($DEVICE_PATH) n'existe pas."
-    exit 1
-fi
-
-echo "Chemin USB détecté : $DEVICE_PATH"
-echo "ID USB détecté : $USB_ID"
-
-# Générer ou mettre à jour docker-compose.yml
+# Generate or update docker-compose.yml
 DOCKER_COMPOSE_FILE="docker-compose.yml"
 
-cat > $DOCKER_COMPOSE_FILE <<EOF
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS configuration - limited USB device access
+    cat > $DOCKER_COMPOSE_FILE <<EOF
+version: '3.8'
+
+services:
+  python-app:
+    build: .
+    container_name: python_pylsl_emotiv
+    privileged: true
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - USB_DEVICE=$USB_ID
+      - PLATFORM=macos
+    command: ["conda", "run", "-n", "lsl_env", "python", "main.py"]
+EOF
+else
+    # Linux configuration - full USB device access
+    cat > $DOCKER_COMPOSE_FILE <<EOF
 version: '3.8'
 
 services:
@@ -52,12 +112,21 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - USB_DEVICE=$USB_ID
+      - PLATFORM=linux
     command: ["conda", "run", "-n", "lsl_env", "python", "main.py"]
 EOF
+fi
 
-echo "Fichier $DOCKER_COMPOSE_FILE mis à jour avec succès !"
-echo "Le dongle Emotiv est configuré pour Docker."
+echo "File $DOCKER_COMPOSE_FILE updated successfully!"
+echo "The Emotiv dongle is configured for Docker."
 
-# Lancer Docker Compose avec le périphérique détecté
-echo "Lancement de Docker Compose..."
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    echo ""
+    echo "Note: On macOS, Docker has limited access to USB devices."
+    echo "The application may need to be run outside of Docker for full USB access."
+    echo "Consider running the application directly on macOS if USB access is required."
+fi
+
+# Launch Docker Compose with the detected device
+echo "Launching Docker Compose..."
 docker-compose up --build

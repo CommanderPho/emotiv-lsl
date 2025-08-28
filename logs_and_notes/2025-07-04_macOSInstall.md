@@ -23,3 +23,19 @@ Traceback (most recent call last):
 AttributeError: module 'hid' has no attribute 'Device'. Did you mean: 'device'?
 (emotiv-lsl) ➜  emotiv-lsl git:(develop) ✗ 
 ```
+
+
+
+## 2025-08-08 - rMBP via micromamba
+```
+git clone https://github.com/CommanderPho/emotiv-lsl.git
+cd emotiv-lsl/
+micromamba create -n lsl_env python=3.8
+micromamba activate lsl_env
+micromamba install -c conda-forge liblsl
+pip install -r requirements_for_mamba.txt
+python main.py
+ls
+python main.py
+
+```
