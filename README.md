@@ -124,18 +124,18 @@ python main.py
    5 cd .\emotiv-lsl\
    6 ls
    7 code .
-   8 pyenv local
-   9 pyenv
-  10 pyenv exec python -m pip install pipenv
-  11 pyenv exec python -m pip install --upgrade pip
-  12 pyenv exec python -m pip install venv
-  13 pyenv exec python -m venv .venv
-  14 .\.venv\Scripts\Activate.ps1
-  15 pyenv local .\.venv\Scripts\python.exe
-  16 python -m pip install --upgrade pip
-  17 python -m pip install pipenv
-  18 python -m pipenv install
-  19 python -m pip install bsl
+pyenv local
+pyenv
+pyenv exec python -m pip install pipenv
+pyenv exec python -m pip install --upgrade pip
+pyenv exec python -m pip install venv
+pyenv exec python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pyenv local .\.venv\Scripts\python.exe
+python -m pip install --upgrade pip
+python -m pip install pipenv
+python -m pipenv install
+python -m pip install bsl
   ```
 
 
@@ -202,6 +202,7 @@ copy "C:\Users\pho\repos\emotiv-lsl\hidapi-win\x64\hidapi.dll" "C:\Users\pho\mic
 ```
 
 
+
 ## SUCESS - 2023-06-18 - Got Completely working with my new Emotiv Epoc X via USB reciever.
 I discovered that you have to launch several terminals: 
 1. first the server: `python main.py`, 
@@ -231,7 +232,8 @@ python main.py
    ```ps1
 micromamba activate lsl_env
 bsl_stream_viewer
-   ```
+bsl_stream_viewer --stream_name 'Epoc X Motion' --bp_off;
+```
 
 
 # 2025-07-01 - Got Epoc X Info
@@ -316,4 +318,21 @@ Traceback (most recent call last):
                  ^^^^^^^^^^
 AttributeError: module 'hid' has no attribute 'Device'. Did you mean: 'device'?
 (emotiv-lsl) ➜  emotiv-lsl git:(main) ✗
+```
+
+
+## 2025-08-27 - tiny10_EEG
+```
+git clone https://github.com/CommanderPho/emotiv-lsl.git
+cd emotiv-lsl/
+eval "$(micromamba.exe shell hook --shell bash)"
+micromamba create -n lsl_env python=3.8
+micromamba activate lsl_env
+micromamba install -c conda-forge liblsl
+pip install -r requirements_for_mamba.txt
+micromamba install -c conda-forge attrs nptyping typing_extensions pyqtgraph pyinstaller
+
+cp C:\Users\pho\repos\emotiv-lsl\hidapi-win\x64\hidapi.dll C:\Users\pho\micromamba\envs\lsl_env\Library\bin\hidapi.dll
+pip install -e ..\bsl
+
 ```

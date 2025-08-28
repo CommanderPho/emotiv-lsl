@@ -12,14 +12,15 @@ class EmotivEpocXPyShark(EmotivEpocX):
     def __attrs_post_init__(self):
         self.delimiter = ','
         self.cipher = AES.new(self.get_crypto_key(), AES.MODE_ECB)
-        self.capture = pyshark.LiveCapture(interface='XHC20', bpf_filter='len == 72')
+        # self.capture = pyshark.LiveCapture(interface='XHC20', bpf_filter='len == 72')
+        self.capture = pyshark.LiveCapture(interface='\\\\?\\HID#VID_1234&PID_ED02&MI_01#a&30a4df18&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}', bpf_filter='len == 72') #  b'\\\\?\\HID#VID_1234&PID_ED02&MI_01#a&30a4df18&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}'
         print(self.capture)
 
     def validate_data(self, data) -> bool:
         return len(data) == 64
 
     def main_loop(self):
-        outlet = StreamOutlet(self.get_stream_info())
+        outlet = StreamOutlet(self.get_lsl_outlet_eeg_stream_info())
         for packet in self.capture.sniff_continuously():
             if packet.usb.dst != 'host':
                 continue

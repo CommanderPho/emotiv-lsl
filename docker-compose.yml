@@ -5,7 +5,7 @@ services:
     devices:
       - /dev/hidraw0:/dev/hidraw0
       - /dev/hidraw1:/dev/hidraw1
-      - /dev/bus/usb/001/006:/dev/bus/usb/001/006
+      - /dev/bus/usb/001/019:/dev/bus/usb/001/019
     build: .
     container_name: python_pylsl_emotiv
     privileged: true

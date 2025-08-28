@@ -1,6 +1,8 @@
 import hid
 import logging
 from Crypto.Cipher import AES
+from typing import Dict, List, Tuple, Optional, Callable, Union, Any
+from nptyping import NDArray
 from pylsl import StreamInfo
 from attrs import define, field, Factory
 from emotiv_lsl.emotiv_base import EmotivBase
@@ -16,6 +18,7 @@ class EmotivEpocPlus(EmotivBase):
     """
     READ_SIZE: int = field(default=32)
     device_name: str = field(default='Emotiv Epoc+')
+    KeyModel: int = field(default = 6) # 5 or 6 for Epoc+ according to CyKit
 
     is_fourteen_bit_mode: bool = field(default=False)
 
@@ -51,7 +54,7 @@ class EmotivEpocPlus(EmotivBase):
 
         return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])
 
-    def get_stream_info(self) -> StreamInfo:
+    def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
         ch_names = ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
         n_channels = len(ch_names)
 
@@ -70,7 +73,7 @@ class EmotivEpocPlus(EmotivBase):
 
         return info
 
-    def decode_data(self, data) -> list:
+    def decode_data(self, data) -> Tuple[List, Optional[List]]:
         """ 
         From `CyKit/Examples/example_epoc_plus.py`
             join_data = ''.join(map(chr, data[1:]))
@@ -87,11 +90,21 @@ class EmotivEpocPlus(EmotivBase):
         join_data = ''.join(map(chr, data[1:]))
         data = self.cipher.decrypt(bytes(join_data,'latin-1')[0:32])
         if str(data[1]) == "32": # No Gyro Data.
-            logging.getLogger('emotiv.epoc_plus').debug(f"Motion/gyro packet detected: data[1]={data[1]}")
-            return
+            logging.getLogger('emotiv.epoc_plus').debug(f"Motion/gyro packet detected: data[1]={data[1]}. WARN: NOT YET IMPLEMENTED FOR EPOC+")
+            return None, None
         
+        ## Check for quality values
+        eeg_quality_data = None
+        if self.enable_electrode_quality_stream:
+            try:
+                eeg_quality_data = self.extractQualityValues(data=data, return_as_array=True)
 
-
+            except Exception as e:
+                print(f'getting EEG sensor quality values failed with error: {e}')
+                eeg_quality_data = None
+                pass
+                # raise e
+                
         packet_data = ""
         for i in range(2, 16, 2):
             packet_data = packet_data + \
@@ -119,8 +132,8 @@ class EmotivEpocPlus(EmotivBase):
         # swap positions of FC6 and F8
         packet_data[10], packet_data[12] = packet_data[12], packet_data[10]
 
-        # ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
-        return packet_data
+        return packet_data, eeg_quality_data
+
 
     def convertEPOC_PLUS(self, value_1, value_2):
         edk_value = "%.8f" % (((int(value_1) * .128205128205129) +
