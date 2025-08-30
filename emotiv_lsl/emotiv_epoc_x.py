@@ -40,7 +40,9 @@ class EmotivEpocX(EmotivBase):
         return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])
 
     def get_lsl_source_id(self) -> str:
-        return f"{self.device_name}_{self.KeyModel}_{self.get_crypto_key()}"
+        source_id: str = self.get_crypto_key().hex() ## convert from bytearray into a hex string
+                
+        return f"{self.device_name}_{self.KeyModel}_{source_id}"
     
 
     def get_lsl_outlet_motion_stream_info(self) -> StreamInfo:
