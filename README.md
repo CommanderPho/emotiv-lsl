@@ -336,3 +336,10 @@ cp C:\Users\pho\repos\emotiv-lsl\hidapi-win\x64\hidapi.dll C:\Users\pho\micromam
 pip install -e ..\bsl
 
 ```
+
+## 2025-09-03 - working on rMBP 2023-16 in Mamba Env
+```bash
+
+
+
+```
