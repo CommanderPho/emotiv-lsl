@@ -338,8 +338,23 @@ pip install -e ..\bsl
 ```
 
 ## 2025-09-03 - working on rMBP 2023-16 in Mamba Env
+`/Users/pho/micromamba/envs/lsl_env`
+### First time setup
 ```bash
+brew install labstreaminglayer/tap/lsl cmake qt
+"${SHELL}" <(curl -L micro.mamba.pm/install.sh)
+source ~/.zshrc
+git clone https://github.com/CommanderPho/emotiv-lsl.git
+cd emotiv-lsl/
+micromamba create -n lsl_env python=3.8
+micromamba activate lsl_env
+micromamba install -c conda-forge liblsl
+pip install -r requirements_for_mamba.txt
+```
 
+micromamba activate lsl_env
 
+micromamba install nptyping attrs typing_extensions
+python main.py
 
 ```
