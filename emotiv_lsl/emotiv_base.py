@@ -137,7 +137,7 @@ class EmotivBase():
 
     def main_loop(self):
         # Create EEG outlet
-        eeg_outlet = StreamOutlet(self.get_lsl_outlet_eeg_stream_info())
+        eeg_outlet = None 
 
         # Create motion outlet if the device supports it
         motion_outlet = None
@@ -206,6 +206,9 @@ class EmotivBase():
                     elif len(decoded) == 14:  # EEG data has 14 channels
                         if self.enable_debug_logging:
                             logger.debug(f"Packet #{packet_count}: EEG data decoded, {len(decoded)} channels")
+                        if eeg_outlet is None:
+                            eeg_outlet = StreamOutlet(self.get_lsl_outlet_eeg_stream_info())
+                            logger.debug(f'set up EEG outlet!')                                                        
                         eeg_outlet.push_sample(decoded)
                     else:
                         logger.debug(f"Packet #{packet_count}: Unknown data type with {len(decoded)} channels")
