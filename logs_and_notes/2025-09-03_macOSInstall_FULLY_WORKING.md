@@ -56,9 +56,15 @@ make -f Makefile-manual
 micromamba create -n lsl_env python=3.8
 micromamba activate lsl_env
 micromamba install -c conda-forge liblsl
+micromamba install attrs nptyping typing_extensions
 pip install -r requirements_for_mamba.txt
+
 ```
 
+### Also did `manual UV add for hid`, but not sure if this is important
+```bash
+uv add "hid==1.0.4"
+```
 
 
 
