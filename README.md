@@ -358,3 +358,18 @@ micromamba install nptyping attrs typing_extensions
 python main.py
 
 ```
+
+
+# 2025-09-05 - rMBP Data Acq freezing after several minutes of recording. `emotiv-lsl` looks fine, it's the `bsl_stream_viewer`s that look locked up. 
+```bash
+micromamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X' --bp_low 1.0 --bp_high 58.0
+
+micromamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X Motion' --bp_off --CAR_off
+```
+
+
+```bash
+
+open /usr/local/opt/labrecorder/LabRecorder/LabRecorder.app
+
+```

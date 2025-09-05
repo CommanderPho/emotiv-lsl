@@ -44,16 +44,16 @@ cd "$REPO_ROOT"
 
 # ----------  Helper: open a new terminal window ----------
 # Tries common terminal emulators; falls back to background process.
+# ----------  Helper: open a new terminal window ----------
 start_command_window() {
   local title=$1
   local cmd=$2
 
   # macOS (Darwin) – use Terminal.app via AppleScript
   if [[ "$(uname)" == "Darwin" ]]; then
-      osascript -e "tell application \"Terminal\" to do script \"bash -lc 'echo -e \\\"${CYAN}Starting ${title}...${RESET}\\\"; ${cmd//$'\n'/ }'\""
+      osascript -e "tell application \"Terminal\" to do script \"bash -lc \\\"echo -e '${CYAN}Starting ${title}...${RESET}'; ${cmd//$'\n'/ }\\\"\""
       return 0
   fi
-
 
   if command -v gnome-terminal &>/dev/null; then
     gnome-terminal --title="$title" -- bash -c "echo -e '${CYAN}Starting $title...${RESET}'; $cmd; exec bash"
@@ -66,6 +66,7 @@ start_command_window() {
     bash -c "$cmd" &
   fi
 }
+
 
 
 # ----------  Build optional recording args (pass only if directory exists) ----------
@@ -90,21 +91,21 @@ fi
 echo -e "${CYAN}Starting BSL viewers...${RESET}"
 
 start_command_window "BSL EEG Viewer" "
-  cd '$REPO_ROOT'
+  cd \"$REPO_ROOT\"
   $PKG_MANAGER activate lsl_env
   bsl_stream_viewer \
      --stream_name 'Epoc X' \
-     ${EEG_RECORDING_ARG} \
+     \"$EEG_RECORDING_ARG\" \
      --bp_low 1.0 --bp_high 58.0
 "
 
 start_command_window "BSL Motion Viewer" "
-  cd '$REPO_ROOT'
+  cd \"$REPO_ROOT\"
   $PKG_MANAGER activate lsl_env
   bsl_stream_viewer \
      --stream_name 'Epoc X Motion' \
-     ${MOTION_RECORDING_ARG} \
-     --bp_off
+     \"$MOTION_RECORDING_ARG\" \
+     --bp_off --CAR_off
 "
 
 echo -e "${GREEN}All components launched successfully!${RESET}"

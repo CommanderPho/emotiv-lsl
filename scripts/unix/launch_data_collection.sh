@@ -36,8 +36,11 @@ fi
 
 echo -e "${GREEN}Launching Emotiv LSL components...${RESET}"
 
-echo -e "${YELLOW}Setting USB access permissions for '/dev/hidraw*' to 0666...${RESET}"
-sudo chmod 0666 /dev/hidraw*
+if [[ "$(uname)" != "Darwin" ]]; then
+    echo -e "${YELLOW}Setting USB access permissions for '/dev/hidraw*' to 0666...${RESET}"
+    sudo chmod 0666 /dev/hidraw*
+fi
+
 
 # # ----------  Stop official Emotiv services ----------
 # echo -e "${YELLOW}Stopping official Emotiv services...${RESET}"
