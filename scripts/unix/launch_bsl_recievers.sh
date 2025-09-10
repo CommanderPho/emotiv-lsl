@@ -93,19 +93,13 @@ echo -e "${CYAN}Starting BSL viewers...${RESET}"
 start_command_window "BSL EEG Viewer" "
   cd \"$REPO_ROOT\"
   $PKG_MANAGER activate lsl_env
-  bsl_stream_viewer \
-     --stream_name 'Epoc X' \
-     \"$EEG_RECORDING_ARG\" \
-     --bp_low 1.0 --bp_high 58.0
+  bsl_stream_viewer --stream_name 'Epoc X' \"$EEG_RECORDING_ARG\" --bp_low 1.0 --bp_high 58.0
 "
 
 start_command_window "BSL Motion Viewer" "
   cd \"$REPO_ROOT\"
   $PKG_MANAGER activate lsl_env
-  bsl_stream_viewer \
-     --stream_name 'Epoc X Motion' \
-     \"$MOTION_RECORDING_ARG\" \
-     --bp_off --CAR_off
+  bsl_stream_viewer --stream_name 'Epoc X Motion' \"$MOTION_RECORDING_ARG\" --bp_off --CAR_off
 "
 
 echo -e "${GREEN}All components launched successfully!${RESET}"
