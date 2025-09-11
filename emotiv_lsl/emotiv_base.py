@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple, Optional, Callable, Union, Any
-import hid
+# import hid
 import logging
+from Crypto.Cipher import AES
 import numpy as np
 from nptyping import NDArray
 from pylsl import StreamInfo, StreamOutlet
@@ -12,9 +13,8 @@ class EmotivBase():
     serial_number: str = field(default=None)
     device_name: str = field(default='UnknownEmotivHeadset')
     delimiter: str = field(default=',')
-    cipher: Any = field(init=False)
-    KeyModel: int = field(default = 1)
-    
+    cipher: Any = field(default=None)
+    KeyModel: int = field(default = 1)    
     
     has_motion_data: bool = field(default=False)
     enable_debug_logging: bool = field(default=False)
@@ -35,24 +35,37 @@ class EmotivBase():
         """The eeg_quality_channel_names property."""
         return [f'q{a_name}' for a_name in self.eeg_channel_names] ## add the 'q' prefix, like ['qAF3', 'qF7', ...]
         
-    def get_hid_device(self):
-        for device in hid.enumerate():
-            if device.get('manufacturer_string', '') == 'Emotiv' and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
-                return device
-        raise Exception('Emotiv Epoc Base Headset not found')
+
+    @classmethod
+    def init_with_serial(cls, serial_number: str, cryptokey: Optional[bytearray]=None, **kwargs):
+        """ doesn't require `hid` or USB access, makes the object with an explicit key """
+        # bytearray(b'6566565666756557')        
+        if cryptokey is not None:
+            cipher = AES.new(cryptokey, AES.MODE_ECB)
+            _obj = cls(cipher=cipher, **kwargs) # , cryptokey=cryptokey
+        else:
+            _obj = cls(serial_number=serial_number, **kwargs) # , cryptokey=cryptokey
+        return _obj
     
+    
+
+
+
     def get_crypto_key(self) -> bytearray:
-        raise NotImplementedError(
-            'get_crypto_key method must be implemented in subclass')
+        raise NotImplementedError('get_crypto_key method must be implemented in subclass')
 
 
     def get_lsl_source_id(self) -> str:
         return f"{self.device_name}_{self.KeyModel}_{self.get_crypto_key()}"
 
 
-
     def get_hid_device(self):
-        raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
+        # raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
+        import hid
+        for device in hid.enumerate():
+            if device.get('manufacturer_string', '') == 'Emotiv' and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
+                return device
+        raise Exception('Emotiv Epoc Base Headset not found')
         pass
 
     def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
@@ -136,6 +149,8 @@ class EmotivBase():
 
 
     def main_loop(self):
+        import hid
+
         # Create EEG outlet
         eeg_outlet = None 
 

@@ -1,4 +1,4 @@
-import hid
+
 import logging
 from Crypto.Cipher import AES
 from typing import Dict, List, Tuple, Optional, Callable, Union, Any
@@ -19,25 +19,40 @@ class EmotivEpocX(EmotivBase):
     
     
     def __attrs_post_init__(self):
-        self.cipher = AES.new(self.get_crypto_key(), AES.MODE_ECB)
+        if (self.cipher is None):           
+            crypto_key = self.get_crypto_key()
+            self.cipher = AES.new(crypto_key, AES.MODE_ECB)
+        else:
+            print(f'working cipher was provided on startup!')
+
         if self.is_reverse_engineer_mode:
             print('starting with reverse engineer mode!')
             # self.READ_SIZE = 64
                            
 
     def get_hid_device(self):
+        import hid
         for device in hid.enumerate():
             if (device.get('manufacturer_string', '') == 'Emotiv') and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
                 return device
         raise Exception('Emotiv Epoc X not found')
 
     def get_crypto_key(self) -> bytearray:
-        serial = self.get_hid_device()['serial_number']
-        self.serial_number = serial
+        if (self.serial_number is None):
+            serial = self.get_hid_device()['serial_number']
+            self.serial_number = serial
+        else:
+            if isinstance(self.serial_number, bytearray):
+                ## serial is actually bytearray
+                return self.serial_number
+            else:
+                serial = self.serial_number
+
         sn = bytearray()
         for i in range(0, len(serial)):
             sn += bytearray([ord(serial[i])])
         return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])
+
 
     def get_lsl_source_id(self) -> str:
         source_id: str = self.get_crypto_key().hex() ## convert from bytearray into a hex string
