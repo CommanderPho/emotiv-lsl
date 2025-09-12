@@ -9,6 +9,9 @@ from attrs import define, field, Factory
 from emotiv_lsl.emotiv_base import EmotivBase
 from config import MOTION_SRATE, SRATE
 
+
+logger = logging.getLogger("emotiv_lsl")
+
 @define(slots=False)
 class EmotivEpocX(EmotivBase):
     READ_SIZE: int = field(default=32)
@@ -137,6 +140,11 @@ class EmotivEpocX(EmotivBase):
                 return
 
         """
+        if (self.enable_debug_logging and self.is_reverse_engineer_mode):
+            logging.debug(f'decode_data(data: {data})') # find/replace with `.+ - emotiv_lsl - WARNING - (b['"].+['"])` and `$1`
+            # logger.warning(f'decode_data(data: {data})')
+            logger.warning(f'{data}')
+            
         data = [el ^ 0x55 for el in data]
         data = self.cipher.decrypt(bytearray(data))
         
