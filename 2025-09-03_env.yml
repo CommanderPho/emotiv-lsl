@@ -1,0 +1,14 @@
+name: lsl_env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  - liblsl
+  - ca-certificates
+  - openssl
+  - attrs
+  - nptyping
+  - typing_extensions
+  - pyqtgraph
+  - pyinstaller
+prefix: /home/dietpi/mne-python/1.9.0_0/envs/lsl_env
