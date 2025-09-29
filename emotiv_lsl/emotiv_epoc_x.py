@@ -6,7 +6,9 @@ from typing import Dict, List, Tuple, Optional, Callable, Union, Any
 from pylsl import StreamInfo
 from attrs import define, field, Factory
 
+from emotiv_lsl.helpers import HardwareConnectionBackend, CyKitCompatibilityHelpers
 from emotiv_lsl.emotiv_base import EmotivBase
+
 from config import MOTION_SRATE, SRATE
 
 
@@ -40,10 +42,53 @@ class EmotivEpocX(EmotivBase):
                 return device
         raise Exception('Emotiv Epoc X not found')
 
+
+    def get_hw_device(self):
+        # raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
+        hw_device = None
+        if self.backend.value == HardwareConnectionBackend.USB.value:
+            import hid
+            device = self.get_hid_device()
+            hw_device = hid.Device(path=device['path'])
+            if self.is_reverse_engineer_mode:
+                logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
+
+        elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
+            from emotiv_lsl.ble_device import BleHidLikeDevice
+            ble_device_name_hint: str = 'EpocX'
+            hw_device = BleHidLikeDevice(device_name_hint=ble_device_name_hint)
+
+            if self.is_reverse_engineer_mode:
+                logger.debug(f'hw_device: {hw_device}\n\twith info: {hw_device._device_info_dict}\n')
+
+        else:
+            raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
+
+        return hw_device
+    
+
     def get_crypto_key(self) -> bytearray:
         if (self.serial_number is None):
-            serial = self.get_hid_device()['serial_number']
-            self.serial_number = serial
+            hw_device = self.get_hw_device()
+            if hw_device is not None:
+                if self.backend.value == HardwareConnectionBackend.USB.value:
+                    serial = self.get_hid_device()['serial_number']
+                    self.serial_number = serial
+                    sn = bytearray()
+                    for i in range(0, len(serial)):
+                        sn += bytearray([ord(serial[i])])
+                    return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])                    
+
+                elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:         
+                    serial = hw_device.serial_number                    
+                    k, samplingRate, channels = CyKitCompatibilityHelpers.get_sn(model=self.KeyModel, serial_number=serial, a_backend=self.backend)
+                    print(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"') ## leave `self.serial_number = None`
+                    logging.debug(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"') # find/replace with `.+ - emotiv_lsl - WARNING - (b['"].+['"])` and `$1`
+                    return k ## cryptokey
+                else:
+                    logger.warning(f'self.backend.value: {self.backend.value} unexpected!')
+                    return None
+
         else:
             if isinstance(self.serial_number, bytearray):
                 ## serial is actually bytearray

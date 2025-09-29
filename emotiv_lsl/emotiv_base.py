@@ -6,30 +6,9 @@ import numpy as np
 from nptyping import NDArray
 from pylsl import StreamInfo, StreamOutlet
 from attrs import define, field, Factory
+from emotiv_lsl.helpers import HardwareConnectionBackend, CyKitCompatibilityHelpers
 
 logger = logging.getLogger(f'emotiv.EmotivBase')
-
-
-from enum import Enum, auto
-
-class HardwareConnectionBackend(Enum):
-    """Description of the enum class and its purpose."""
-    USB = auto()
-    BLUETOOTH = auto()
-    # THIRD = auto()
-
-    def __str__(self):
-        return self.name
-
-    @classmethod
-    def list_values(cls):
-        """Returns a list of all enum values"""
-        return list(cls)
-
-    @classmethod
-    def list_names(cls):
-        """Returns a list of all enum names"""
-        return [e.name for e in cls]
 
 
 
@@ -82,38 +61,7 @@ class EmotivBase():
     def get_lsl_source_id(self) -> str:
         return f"{self.device_name}_{self.KeyModel}_{self.get_crypto_key()}"
 
-    def get_hw_device(self):
-        # raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
-        hw_device = None
-        if self.backend.value == HardwareConnectionBackend.USB.value:
-            import hid
-                
-            # import hid
-            # for device in hid.enumerate():
-            #     if device.get('manufacturer_string', '') == 'Emotiv' and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
-            #         return device
-            # raise Exception('Emotiv Epoc Base Headset not found')
-            # pass
-            device = self.get_hid_device()
-            hw_device = hid.Device(path=device['path'])
-            if self.is_reverse_engineer_mode:
-                logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
 
-
-        elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
-            from emotiv_lsl.ble_device import BleHidLikeDevice
-            hw_device = BleHidLikeDevice(device_name_hint=self.device_name)
-
-            if self.is_reverse_engineer_mode:
-                logger.debug(f'hw_device: {hw_device}\n\twith path: {device["path"]}\n')
-
-        else:
-            raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
-
-
-
-
-    
 
     def get_hid_device(self):
         # raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
@@ -122,7 +70,34 @@ class EmotivBase():
             if device.get('manufacturer_string', '') == 'Emotiv' and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
                 return device
         raise Exception('Emotiv Epoc Base Headset not found')
-        
+
+
+    def get_hw_device(self):
+        # raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
+        hw_device = None
+        if self.backend.value == HardwareConnectionBackend.USB.value:
+            import hid
+            device = self.get_hid_device()
+            hw_device = hid.Device(path=device['path'])
+            if self.is_reverse_engineer_mode:
+                logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
+
+        elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
+            from emotiv_lsl.ble_device import BleHidLikeDevice
+            ble_device_name_hint: str = 'EPOC'
+            hw_device = BleHidLikeDevice(device_name_hint=ble_device_name_hint)
+
+            if self.is_reverse_engineer_mode:
+                logger.debug(f'hw_device: {hw_device}\n\twith info: {hw_device._device_info_dict}\n')
+
+        else:
+            raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
+
+        return hw_device
+
+
+    
+
 
     def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
         """Create LSL stream for EEG sensor data"""

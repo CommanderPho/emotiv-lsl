@@ -5,6 +5,7 @@ import time
 import logging
 
 from bleak import BleakClient, BleakScanner
+from emotiv_lsl.helpers import HardwareConnectionBackend, CyKitCompatibilityHelpers
 
 DEVICE_UUID = "{81072f40-9f3d-11e3-a9dc-0002a5d5c51b}".lower()
 DATA_UUID   = "{81072f41-9f3d-11e3-a9dc-0002a5d5c51b}".lower()
@@ -19,6 +20,7 @@ class BleHidLikeDevice:
 
     def __init__(self, device_name_hint: str = "EPOC"):
         self._device_name_hint = device_name_hint
+        self._device_info_dict = None
         self._client = None
         self._loop = None
         self._thread = None
@@ -34,6 +36,21 @@ class BleHidLikeDevice:
         # Wait for connection (with timeout)
         if not self._connected_event.wait(timeout=15.0):
             raise TimeoutError("BLE connect timeout")
+
+
+    @property
+    def serial_number(self):
+        """The serial_number property."""
+        if self._device_info_dict is None:
+            return None
+        return (self._device_info_dict or {}).get('headset_serial_number', None)
+        # return bytes(("\x00" * 12),'utf-8') + bytearray.fromhex(str(BT_key[6:8] + BT_key[4:6] + BT_key[2:4] + BT_key[0:2]))
+    @serial_number.setter
+    def serial_number(self, value):
+        if self._device_info_dict is None:
+            self._device_info_dict = {}
+        self._device_info_dict['headset_serial_number'] = value
+
 
     def _run_loop(self):
         try:
@@ -63,9 +80,26 @@ class BleHidLikeDevice:
         dev = next((d for d in devices if (d.name or "").lower().startswith(self._device_name_hint.lower())), None)
         if dev is None:
             raise RuntimeError(f"BLE device with name containing '{self._device_name_hint}' not found.\ndevices: {devices}")
+        else:
+            # Build and store info about the discovered device, mirroring the example structure
+            info_dict = {'address': dev.address, 'name': dev.name, 'details': dev.details}
+            a_name = dev.name
+            if (a_name is not None) and a_name.startswith('EPOC'):
+                *headset_name_parts, headset_BT_hex_key = a_name.split(' ')
+                headset_name = ' '.join(headset_name_parts)
+                headset_BT_hex_key = headset_BT_hex_key.strip(')(')
+                info_dict['headset_name'] = headset_name
+                info_dict['headset_BT_hex_key'] = headset_BT_hex_key
+                assert len(headset_BT_hex_key) == 9, f"len(headset_BT_hex_key): {len(headset_BT_hex_key)}, headset_BT_hex_key: '{headset_BT_hex_key}'"
+                serial_number = bytes(("\x00" * 12),'utf-8') + bytearray.fromhex(str(headset_BT_hex_key[6:8] + headset_BT_hex_key[4:6] + headset_BT_hex_key[2:4] + headset_BT_hex_key[0:2]))
+                info_dict['headset_serial_number'] = serial_number
+            self._device_info_dict = info_dict
+            print(f"{dev}\tinfo_dict: {self._device_info_dict}")
 
         self._client = BleakClient(dev)
         await self._client.connect()
+        if self._client.is_connected:
+            print(f"Connected to {dev}\tinfo_dict: {self._device_info_dict}")
 
         # Optionally send start streaming command here if needed
         # await self._client.write_gatt_char(DATA_UUID, b"\x01\x00", response=False)
@@ -208,7 +242,7 @@ if __name__ == "__main__":
     
     asyncio.run(BleHidLikeDevice.discover_devices())
 
-    hw_device  = BleHidLikeDevice()
+    hw_device = BleHidLikeDevice()
     hw_device
     
     hw_device._device_name_hint

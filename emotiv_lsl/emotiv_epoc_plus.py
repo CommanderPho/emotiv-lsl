@@ -5,6 +5,7 @@ from typing import Dict, List, Tuple, Optional, Callable, Union, Any
 from nptyping import NDArray
 from pylsl import StreamInfo
 from attrs import define, field, Factory
+from emotiv_lsl.helpers import HardwareConnectionBackend, CyKitCompatibilityHelpers
 from emotiv_lsl.emotiv_base import EmotivBase
 from config import SRATE
 
