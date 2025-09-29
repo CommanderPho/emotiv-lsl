@@ -365,6 +365,9 @@ python main.py
 micromamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X' --bp_low 1.0 --bp_high 58.0
 
 micromamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X Motion' --bp_off --CAR_off
+
+micromamba activate lsl_env; bsl_stream_viewer --bp_off --CAR_off
+
 ```
 
 
