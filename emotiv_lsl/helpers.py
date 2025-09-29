@@ -86,6 +86,13 @@ class CyKitCompatibilityHelpers:
             samplingRate = 128
             channels = 40
 
+        # --- Model 8 > [Epoc X]
+        if model == 8:
+            # Match the Epoc X key derivation used in USB path
+            k = [sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]]
+            samplingRate = 256
+            channels = 40
+
             # 1223332414224421
         if a_backend.value == HardwareConnectionBackend.BLUETOOTH.value:
             return bytes(bytearray(k)), samplingRate, channels
