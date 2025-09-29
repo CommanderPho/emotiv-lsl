@@ -83,6 +83,7 @@ class BleHidLikeDevice:
         # Push raw bytes into queue
         self._in_q.put(bytes(data))
 
+
     def read(self, size: int, timeout_ms: int = 0):
         """Block until `size` bytes are available, then return exactly that many.
 
