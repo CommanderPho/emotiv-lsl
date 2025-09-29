@@ -218,7 +218,8 @@ class EmotivBase():
 
         elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
             print(f'BLE Bluetooth mode!')
-            hw_device = BleHidLikeDevice(device_name_hint=self.device_name)
+            device_name_hint = 'EPOC'
+            hw_device = BleHidLikeDevice(device_name_hint=device_name_hint)
 
             if self.is_reverse_engineer_mode:
                 logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')

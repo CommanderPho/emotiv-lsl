@@ -55,7 +55,7 @@ class EmotivEpocX(EmotivBase):
 
         elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
             from emotiv_lsl.ble_device import BleHidLikeDevice
-            ble_device_name_hint: str = 'EpocX'
+            ble_device_name_hint: str = 'EPOCX'
             hw_device = BleHidLikeDevice(device_name_hint=ble_device_name_hint)
 
             if self.is_reverse_engineer_mode:
