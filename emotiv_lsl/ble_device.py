@@ -2,6 +2,8 @@ import asyncio
 import threading
 import queue
 import time
+import logging
+
 from bleak import BleakClient, BleakScanner
 
 DEVICE_UUID = "{81072f40-9f3d-11e3-a9dc-0002a5d5c51b}".lower()
@@ -15,7 +17,7 @@ class BleHidLikeDevice:
     Exposes read(size) that blocks until `size` bytes are available.
     """
 
-    def __init__(self, device_name_hint: str = "EPOC+"):
+    def __init__(self, device_name_hint: str = "EPOC"):
         self._device_name_hint = device_name_hint
         self._client = None
         self._loop = None
@@ -58,9 +60,9 @@ class BleHidLikeDevice:
     async def _async_init(self):
         # Discover by name hint
         devices = await BleakScanner.discover()
-        dev = next((d for d in devices if self._device_name_hint.lower() in (d.name or "").lower()), None)
+        dev = next((d for d in devices if (d.name or "").lower().startswith(self._device_name_hint.lower())), None)
         if dev is None:
-            raise RuntimeError(f"BLE device with name containing '{self._device_name_hint}' not found")
+            raise RuntimeError(f"BLE device with name containing '{self._device_name_hint}' not found.\ndevices: {devices}")
 
         self._client = BleakClient(dev)
         await self._client.connect()
@@ -137,4 +139,81 @@ class BleHidLikeDevice:
                 self._thread.join(timeout=2)
             except Exception:
                 pass
+
+    @classmethod
+    async def discover_devices(cls):
+        devices = await BleakScanner.discover()
+        for d in devices:
+            # 949F7EA5-0829-05F7-3441-7BAABB0F0064: EPOCX (E50202E9)
+            # 949F7EA5-0829-05F7-3441-7BAABB0F0064: EPOCX (E50202E9)  info_dict: {'address': '949F7EA5-0829-05F7-3441-7BAABB0F0064', 'name': 'EPOCX (E50202E9)', 'details': (<CBPeripheral: 0x7fb8b300aed0, identifier = 949F7EA5-0829-05F7-3441-7BAABB0F0064, name = EPOCX (E50202E9), mtu = 0, state = disconnected>, <CentralManagerDelegate: 0x7fb8c2869740>)}
+            #: The Bluetooth address of the device on this machine (UUID on macOS).
+            info_dict = {'address': d.address, 'name': d.name, 'details': d.details}
+            a_name: str = d.name
+            # print(f'\ta_name: "{a_name}"')
+            if (a_name is not None) and a_name.startswith('EPOC'):
+                *headset_name_parts, headset_serial = a_name.split(' ') # EPOCX
+                headset_name: str = ' '.join(headset_name_parts)
+                headset_serial: str = headset_serial.strip(')(') ## strip the soft braces  - E50202E9
+                headset_serial
+                info_dict['headset_name'] = headset_name
+                info_dict['headset_serial'] = headset_serial
+                print(f'{d}\tinfo_dict: {info_dict}') 
+    
+                #: The operating system name of the device (not necessarily the local name
+                #: from the advertising data), suitable for display to the user.
+                # d.name = name
+                # : The OS native details required for connecting to the device.
+                # d.details = details
+                # print(d)
+            
+        # print(f'devices: {devices}')
+        # return devices
+    
+
+
+
+if __name__ == "__main__":
+    # Configure logging for debugging data packets
+    logging.basicConfig(
+        # level=logging.DEBUG,
+        level=logging.WARNING,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    # logger = logging.getLogger("emotiv_lsl")
+    # logger.setLevel(logging.DEBUG)
+
+    # file_handler = logging.FileHandler("logs_and_notes/logs/decode_tracing.log")
+    # file_handler.setLevel(logging.WARN)
+
+    # console_handler = logging.StreamHandler()
+    # console_handler.setLevel(logging.INFO)
+
+    # formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    # file_handler.setFormatter(formatter)
+    # console_handler.setFormatter(formatter)
+
+    # logger.addHandler(file_handler)
+    # logger.addHandler(console_handler)
+
+    # logger.info("info → console only")
+    # logger.error("error → console + file")
+
+    # logging.basicConfig(filename="logs_and_notes/logs/decode_tracing.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+    # found_devices = BleHidLikeDevice.discover_devices()
+    # print(f'found_devices: {found_devices}')
+    # 949F7EA5-0829-05F7-3441-7BAABB0F0064: EPOCX (E50202E9)
+    
+    asyncio.run(BleHidLikeDevice.discover_devices())
+
+    hw_device  = BleHidLikeDevice()
+    hw_device
+    
+    hw_device._device_name_hint
+    
+    hw_device.close()
+    # crypto_key = emotiv_epoc_x.get_crypto_key()
+    # print(f'crypto_key: {crypto_key}')
+    # emotiv_epoc_x.main_loop()
 
