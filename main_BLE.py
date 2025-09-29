@@ -1,5 +1,7 @@
 import logging
+import asyncio
 from emotiv_lsl.helpers import HardwareConnectionBackend, CyKitCompatibilityHelpers
+from emotiv_lsl.ble_device import BleHidLikeDevice
 from emotiv_lsl.emotiv_epoc_x import EmotivEpocX
 
 
@@ -32,7 +34,11 @@ if __name__ == "__main__":
 
     # logging.basicConfig(filename="logs_and_notes/logs/decode_tracing.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
+    # asyncio.run(BleHidLikeDevice.discover_devices())
+    
+
     emotiv_epoc_x = EmotivEpocX(backend=HardwareConnectionBackend.BLUETOOTH)
     crypto_key = emotiv_epoc_x.get_crypto_key()
     print(f'crypto_key: {crypto_key}')
     emotiv_epoc_x.main_loop()
+    # asyncio.run(BleHidLikeDevice.discover_devices())

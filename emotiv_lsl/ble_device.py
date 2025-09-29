@@ -77,14 +77,18 @@ class BleHidLikeDevice:
     async def _async_init(self):
         # Discover by name hint
         devices = await BleakScanner.discover()
-        dev = next((d for d in devices if (d.name or "").lower().startswith(self._device_name_hint.lower())), None)
-        if dev is None:
-            raise RuntimeError(f"BLE device with name containing '{self._device_name_hint}' not found.\ndevices: {devices}")
-        else:
+        # dev = next((d for d in devices if (d.name or "").lower().startswith(self._device_name_hint.lower())), None)
+        # if dev is None:
+        #     raise RuntimeError(f"BLE device with name containing '{self._device_name_hint}' not found.\ndevices: {devices}")
+        # else:
+        found_dev = None
+        for dev in devices:
             # Build and store info about the discovered device, mirroring the example structure
             info_dict = {'address': dev.address, 'name': dev.name, 'details': dev.details}
             a_name = dev.name
             if (a_name is not None) and a_name.startswith('EPOC'):
+                logging.info(f'found device: {info_dict}')
+                found_dev = dev 
                 *headset_name_parts, headset_BT_hex_key = a_name.split(' ')
                 headset_name = ' '.join(headset_name_parts)
                 headset_BT_hex_key = headset_BT_hex_key.strip(')(')
@@ -93,25 +97,36 @@ class BleHidLikeDevice:
                 assert len(headset_BT_hex_key) == 9, f"len(headset_BT_hex_key): {len(headset_BT_hex_key)}, headset_BT_hex_key: '{headset_BT_hex_key}'"
                 serial_number = bytes(("\x00" * 12),'utf-8') + bytearray.fromhex(str(headset_BT_hex_key[6:8] + headset_BT_hex_key[4:6] + headset_BT_hex_key[2:4] + headset_BT_hex_key[0:2]))
                 info_dict['headset_serial_number'] = serial_number
-            self._device_info_dict = info_dict
-            print(f"{dev}\tinfo_dict: {self._device_info_dict}")
+                
+                self._device_info_dict = info_dict
+                logging.info(f'found device: {info_dict}')
+                
+            # print(f"{dev}\tinfo_dict: {self._device_info_dict}")
+            logging.info(f'{dev}\tinfo_dict: {self._device_info_dict}')
+            
+        ## end for dev in dev...
+        logging.info(f"done enumerating devices dev: {dev}")
 
-        self._client = BleakClient(dev)
-        await self._client.connect()
-        if self._client.is_connected:
-            print(f"Connected to {dev}\tinfo_dict: {self._device_info_dict}")
+        if found_dev is not None:
+            self._client = BleakClient(dev)
+            await self._client.connect()
+            if self._client.is_connected:
+                print(f"Connected to {dev}\tinfo_dict: {self._device_info_dict}")
+                logging.info(f"Connected to {dev}\tinfo_dict: {self._device_info_dict}")
+            # Optionally send start streaming command here if needed
+            # await self._client.write_gatt_char(DATA_UUID, b"\x01\x00", response=False)
 
-        # Optionally send start streaming command here if needed
-        # await self._client.write_gatt_char(DATA_UUID, b"\x01\x00", response=False)
+            await self._client.start_notify(DATA_UUID, self._on_notification)
+            # MEMS is optional; uncomment if needed by caller to interleave streams
+            try:
+                await self._client.start_notify(MEMS_UUID, self._on_notification)
+            except Exception:
+                pass
 
-        await self._client.start_notify(DATA_UUID, self._on_notification)
-        # MEMS is optional; uncomment if needed by caller to interleave streams
-        try:
-            await self._client.start_notify(MEMS_UUID, self._on_notification)
-        except Exception:
-            pass
-
-        self._connected_event.set()
+            self._connected_event.set()
+        else:
+            logging.error(f"could not find device.")
+            raise ValueError(f'could not fin ddevice!')
 
     def _on_notification(self, _handle, data: bytearray):
         # Push raw bytes into queue
