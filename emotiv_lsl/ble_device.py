@@ -201,13 +201,17 @@ class BleHidLikeDevice:
             a_name: str = d.name
             # print(f'\ta_name: "{a_name}"')
             if (a_name is not None) and a_name.startswith('EPOC'):
-                *headset_name_parts, headset_serial = a_name.split(' ') # EPOCX
-                headset_name: str = ' '.join(headset_name_parts)
-                headset_serial: str = headset_serial.strip(')(') ## strip the soft braces  - E50202E9
-                headset_serial
+                logger.debug(f"found_device with name: '{a_name}'")
+                *headset_name_parts, headset_BT_hex_key = a_name.split(' ')
+                headset_name = ' '.join(headset_name_parts)
+                headset_BT_hex_key = headset_BT_hex_key.strip(')(')
                 info_dict['headset_name'] = headset_name
-                info_dict['headset_serial'] = headset_serial
-                print(f'{d}\tinfo_dict: {info_dict}') 
+                info_dict['headset_BT_hex_key'] = headset_BT_hex_key
+                assert len(headset_BT_hex_key) == 9, f"len(headset_BT_hex_key): {len(headset_BT_hex_key)}, headset_BT_hex_key: '{headset_BT_hex_key}'"
+                serial_number = bytes(("\x00" * 12),'utf-8') + bytearray.fromhex(str(headset_BT_hex_key[6:8] + headset_BT_hex_key[4:6] + headset_BT_hex_key[2:4] + headset_BT_hex_key[0:2]))
+                info_dict['headset_serial_number'] = serial_number
+                # print(f'{d}\tinfo_dict: {info_dict}') 
+                logger.info(f"{d}\tinfo_dict: {info_dict}")
     
                 #: The operating system name of the device (not necessarily the local name
                 #: from the advertising data), suitable for display to the user.
@@ -215,7 +219,8 @@ class BleHidLikeDevice:
                 # : The OS native details required for connecting to the device.
                 # d.details = details
                 # print(d)
-            
+                
+        logger.info(f"done.")
         # print(f'devices: {devices}')
         # return devices
     
@@ -257,12 +262,12 @@ if __name__ == "__main__":
     
     asyncio.run(BleHidLikeDevice.discover_devices())
 
-    hw_device = BleHidLikeDevice()
-    hw_device
+    # hw_device = BleHidLikeDevice()
+    # hw_device
     
-    hw_device._device_name_hint
+    # hw_device._device_name_hint
     
-    hw_device.close()
+    # hw_device.close()
     # crypto_key = emotiv_epoc_x.get_crypto_key()
     # print(f'crypto_key: {crypto_key}')
     # emotiv_epoc_x.main_loop()
