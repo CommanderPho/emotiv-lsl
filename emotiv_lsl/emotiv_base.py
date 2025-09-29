@@ -7,8 +7,32 @@ from nptyping import NDArray
 from pylsl import StreamInfo, StreamOutlet
 from attrs import define, field, Factory
 
+from enum import Enum, auto
+
+class HardwareConnectionBackend(Enum):
+    """Description of the enum class and its purpose."""
+    USB = auto()
+    BLUETOOTH = auto()
+    # THIRD = auto()
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def list_values(cls):
+        """Returns a list of all enum values"""
+        return list(cls)
+
+    @classmethod
+    def list_names(cls):
+        """Returns a list of all enum names"""
+        return [e.name for e in cls]
+
+
+
 @define(slots=False)
 class EmotivBase():
+    backend: HardwareConnectionBackend = field(default=HardwareConnectionBackend.USB)
     READ_SIZE: int = field(default=32)
     serial_number: str = field(default=None)
     device_name: str = field(default='UnknownEmotivHeadset')
@@ -37,19 +61,16 @@ class EmotivBase():
         
 
     @classmethod
-    def init_with_serial(cls, serial_number: str, cryptokey: Optional[bytearray]=None, **kwargs):
+    def init_with_serial(cls, serial_number: str, cryptokey: Optional[bytearray]=None, backend: HardwareConnectionBackend=HardwareConnectionBackend.USB, **kwargs):
         """ doesn't require `hid` or USB access, makes the object with an explicit key """
         # bytearray(b'6566565666756557')        
         if cryptokey is not None:
             cipher = AES.new(cryptokey, AES.MODE_ECB)
-            _obj = cls(cipher=cipher, **kwargs) # , cryptokey=cryptokey
+            _obj = cls(cipher=cipher, backend=backend, **kwargs) # , cryptokey=cryptokey
         else:
-            _obj = cls(serial_number=serial_number, **kwargs) # , cryptokey=cryptokey
+            _obj = cls(serial_number=serial_number, backend=backend, **kwargs) # , cryptokey=cryptokey
         return _obj
     
-    
-
-
 
     def get_crypto_key(self) -> bytearray:
         raise NotImplementedError('get_crypto_key method must be implemented in subclass')
@@ -149,8 +170,15 @@ class EmotivBase():
 
 
     def main_loop(self):
-        import hid
-
+        if self.backend.value == HardwareConnectionBackend.USB.value:
+            import hid
+        elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
+            print(f'BLE Bluetooth mode!')
+            import bleak
+        else:
+            raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
+        
+            
         # Create EEG outlet
         eeg_outlet = None 
 
@@ -169,12 +197,23 @@ class EmotivBase():
         eeg_quality_outlet = None
         
         ## Get the device info
-        device = self.get_hid_device()
-        hid_device = hid.Device(path=device['path'])
         logger = logging.getLogger(f'emotiv.{self.device_name.replace(" ", "_").lower()}')
         
-        if self.is_reverse_engineer_mode:
-            logger.debug(f'hid_device: {hid_device}\n\twith path: {device["path"]}\n')
+        if self.backend.value == HardwareConnectionBackend.USB.value:
+            device = self.get_hid_device()
+            hid_device = hid.Device(path=device['path'])
+            if self.is_reverse_engineer_mode:
+                logger.debug(f'hid_device: {hid_device}\n\twith path: {device["path"]}\n')
+        
+
+        elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
+            print(f'BLE Bluetooth mode!')
+            import bleak
+            if self.is_reverse_engineer_mode:
+                logger.debug(f'hid_device: {hid_device}\n\twith path: {device["path"]}\n')
+        
+        else:
+            raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
         
         packet_count = 0
         

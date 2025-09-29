@@ -27,6 +27,7 @@ dependencies = [
     "pyqtgraph>=0.13.3",
     "nptyping>=2.5.0",
     "bsl",
+    "bleak>=0.22.3",
 ]
 
 [tool.uv.sources]
