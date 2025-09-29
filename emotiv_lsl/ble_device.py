@@ -114,7 +114,7 @@ class BleHidLikeDevice:
                 print(f"Connected to {dev}\tinfo_dict: {self._device_info_dict}")
                 logging.info(f"Connected to {dev}\tinfo_dict: {self._device_info_dict}")
             # Optionally send start streaming command here if needed
-            # await self._client.write_gatt_char(DATA_UUID, b"\x01\x00", response=False)
+            await self._client.write_gatt_char(DATA_UUID, b"\x01\x00", response=False)
 
             await self._client.start_notify(DATA_UUID, self._on_notification)
             # MEMS is optional; uncomment if needed by caller to interleave streams
