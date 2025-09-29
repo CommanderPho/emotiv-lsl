@@ -174,7 +174,7 @@ class EmotivBase():
             import hid
         elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
             print(f'BLE Bluetooth mode!')
-            import bleak
+            from emotiv_lsl.ble_device import BleHidLikeDevice
         else:
             raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
         
@@ -201,16 +201,17 @@ class EmotivBase():
         
         if self.backend.value == HardwareConnectionBackend.USB.value:
             device = self.get_hid_device()
-            hid_device = hid.Device(path=device['path'])
+            hw_device = hid.Device(path=device['path'])
             if self.is_reverse_engineer_mode:
-                logger.debug(f'hid_device: {hid_device}\n\twith path: {device["path"]}\n')
+                logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
         
 
         elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
             print(f'BLE Bluetooth mode!')
-            import bleak
+            hw_device = BleHidLikeDevice(device_name_hint=self.device_name)
+
             if self.is_reverse_engineer_mode:
-                logger.debug(f'hid_device: {hid_device}\n\twith path: {device["path"]}\n')
+                logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
         
         else:
             raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
@@ -218,7 +219,7 @@ class EmotivBase():
         packet_count = 0
         
         while True:
-            data = hid_device.read(self.READ_SIZE)
+            data = hw_device.read(self.READ_SIZE)
             packet_count += 1
             
             if (self.is_reverse_engineer_mode and (raw_packet_outlet is not None)):
@@ -270,3 +271,4 @@ class EmotivBase():
                     logger.debug(f"Packet #{packet_count}: self.decode_data(data) failed -- data packet (skipped)")
             else:
                 logger.debug(f"Packet #{packet_count}: Invalid data packet, length={len(data)}")
+
