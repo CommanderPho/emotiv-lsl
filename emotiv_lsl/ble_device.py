@@ -94,7 +94,7 @@ class BleHidLikeDevice:
                 headset_BT_hex_key = headset_BT_hex_key.strip(')(')
                 info_dict['headset_name'] = headset_name
                 info_dict['headset_BT_hex_key'] = headset_BT_hex_key
-                assert len(headset_BT_hex_key) == 9, f"len(headset_BT_hex_key): {len(headset_BT_hex_key)}, headset_BT_hex_key: '{headset_BT_hex_key}'"
+                assert len(headset_BT_hex_key) == 8, f"len(headset_BT_hex_key): {len(headset_BT_hex_key)}, headset_BT_hex_key: '{headset_BT_hex_key}'"
                 serial_number = bytes(("\x00" * 12),'utf-8') + bytearray.fromhex(str(headset_BT_hex_key[6:8] + headset_BT_hex_key[4:6] + headset_BT_hex_key[2:4] + headset_BT_hex_key[0:2]))
                 info_dict['headset_serial_number'] = serial_number
                 
@@ -108,11 +108,11 @@ class BleHidLikeDevice:
         logging.info(f"done enumerating devices dev: {dev}")
 
         if found_dev is not None:
-            self._client = BleakClient(dev)
+            self._client = BleakClient(found_dev)
             await self._client.connect()
             if self._client.is_connected:
-                print(f"Connected to {dev}\tinfo_dict: {self._device_info_dict}")
-                logging.info(f"Connected to {dev}\tinfo_dict: {self._device_info_dict}")
+                print(f"Connected to {found_dev}\tinfo_dict: {self._device_info_dict}")
+                logging.info(f"Connected to {found_dev}\tinfo_dict: {self._device_info_dict}")
             # Optionally send start streaming command here if needed
             await self._client.write_gatt_char(DATA_UUID, b"\x01\x00", response=False)
 
