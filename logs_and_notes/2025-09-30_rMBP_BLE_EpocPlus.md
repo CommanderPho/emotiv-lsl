@@ -19,6 +19,13 @@ Traceback (most recent call last):
 ValueError: Data must be aligned to block boundary in ECB mode
 
 
+(lsl_env) PS C:\Users\pho\repos\EmotivEpoc\emotiv-lsl> python .\main_BLE.py
+2025-09-30 14:40:14,061 - emotiv_lsl.ble_device - INFO - found device: {'address': 'C7:52:C2:63:6A:84', 'name': 'EPOC+ (3B9ACCA6)', 'details': _RawAdvData(adv=<_bleak_winrt_Windows_Devices_Bluetooth_Advertisement.BluetoothLEAdvertisementReceivedEventArgs object at 0x000001A5A4D1BE50>, scan=None), 'headset_name': 'EPOC+', 'headset_BT_hex_key': '3B9ACCA6', 'headset_serial_number': b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xa6\xcc\x9a;'}
+2025-09-30 14:40:14,062 - emotiv_lsl.ble_device - INFO - done enumerating devices found_dev: C7:52:C2:63:6A:84: EPOC+ (3B9ACCA6)        info_dict: {'address': 'C7:52:C2:63:6A:84', 'name': 'EPOC+ (3B9ACCA6)', 'details': _RawAdvData(adv=<_bleak_winrt_Windows_Devices_Bluetooth_Advertisement.BluetoothLEAdvertisementReceivedEventArgs object at 0x000001A5A4D1BE50>, scan=None), 'headset_name': 'EPOC+', 'headset_BT_hex_key': '3B9ACCA6', 'headset_serial_number': b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xa6\xcc\x9a;'}      
+2025-09-30 14:40:14,066 - emotiv_lsl.ble_device - INFO - found_device, connecting...
+
+
+
 # From CyKit:
   Cipher Key = b';\x9a\x9a\xcc\xcc\xcc\x9a\xa6;\xa6\x9a\x9a\xa6\xa6\x9a;'
 

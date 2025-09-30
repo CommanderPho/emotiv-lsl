@@ -9,7 +9,7 @@ from emotiv_lsl.emotiv_epoc_plus import EmotivEpocPlus
 if __name__ == "__main__":
     # Configure logging for debugging data packets
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
@@ -36,8 +36,23 @@ if __name__ == "__main__":
 
     # asyncio.run(BleHidLikeDevice.discover_devices())
 
+    hardcoded_epoc_plus_key_kwargs = {
+        'ble_device_name_hint': 'EPOC+',
+        'serial_number': b';\x9a\x9a\xcc\xcc\xcc\x9a\xa6;\xa6\x9a\x9a\xa6\xa6\x9a;', #'3B9ACCA6',
+        'cryptokey': b';\x9a\x9a\xcc\xcc\xcc\x9a\xa6;\xa6\x9a\x9a\xa6\xa6\x9a;',
+    }
+    emotiv_epoc = EmotivEpocPlus.init_with_serial(**hardcoded_epoc_plus_key_kwargs, backend=HardwareConnectionBackend.BLUETOOTH)
+    
 
-    emotiv_epoc = EmotivEpocPlus(backend=HardwareConnectionBackend.BLUETOOTH)
+    # hardcoded_epocX_key_kwargs = {
+    #     'ble_device_name_hint': 'EPOCX',
+    #     'serial_number': b'\xe5\x02\x02\x02\x02\x02\x02\xe9\xe5\xe9\x02\x02\xe9\xe9\x02\xe5', # 'E50202E9',
+    #     'cryptokey': b'\xe5\x02\x02\x02\x02\x02\x02\xe9\xe5\xe9\x02\x02\xe9\xe9\x02\xe5',
+    # }
+    # emotiv_epoc = EmotivEpocX.init_with_serial(**hardcoded_epocX_key_kwargs, backend=HardwareConnectionBackend.BLUETOOTH)
+    # emotiv_epoc = EmotivEpocPlus(backend=HardwareConnectionBackend.BLUETOOTH)
+    
+    
     # crypto_key = emotiv_epoc.get_crypto_key()
     # print(f'crypto_key: {crypto_key}')
     emotiv_epoc.main_loop()
