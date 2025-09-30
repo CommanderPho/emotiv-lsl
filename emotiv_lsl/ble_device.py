@@ -11,6 +11,8 @@ DEVICE_UUID = "{81072f40-9f3d-11e3-a9dc-0002a5d5c51b}".lower()
 DATA_UUID   = "{81072f41-9f3d-11e3-a9dc-0002a5d5c51b}".lower()
 MEMS_UUID   = "{81072f42-9f3d-11e3-a9dc-0002a5d5c51b}".lower()
 
+logger = logging.getLogger(__name__)
+
 
 class BleHidLikeDevice:
     """Minimal HID-like wrapper over Bleak notifications.
@@ -18,7 +20,7 @@ class BleHidLikeDevice:
     Exposes read(size) that blocks until `size` bytes are available.
     """
 
-    def __init__(self, device_name_hint: str = "EPOC"):
+    def __init__(self, device_name_hint: str = "EPOC", connect_timeout_s: float = 45.0, scan_interval_s: float = 3.0, attempt_notify: bool = True):
         self._device_name_hint = device_name_hint
         self._device_info_dict = None
         self._client = None
@@ -28,14 +30,35 @@ class BleHidLikeDevice:
         self._buffer = bytearray()
         self._connected_event = threading.Event()
         self._stop_event = threading.Event()
+        self._connect_timeout_s = max(1.0, float(connect_timeout_s))
+        self._scan_interval_s = max(0.5, float(scan_interval_s))
+        self._attempt_notify = bool(attempt_notify)
 
         # Start background BLE thread
         self._thread = threading.Thread(target=self._run_loop, name="BleHidLoop", daemon=True)
         self._thread.start()
 
-        # Wait for connection (with timeout)
-        if not self._connected_event.wait(timeout=15.0):
+        # Wait for connection or immediate init error (with timeout)
+        deadline = time.time() + self._connect_timeout_s
+        while not self._connected_event.is_set():
+            remaining = deadline - time.time()
+            if remaining <= 0:
+                break
+            try:
+                # Poll for exceptions from the BLE thread to surface immediately
+                item = self._in_q.get(timeout=min(0.25, max(0.0, remaining)))
+                if isinstance(item, Exception):
+                    raise item
+                else:
+                    # Data before connected shouldn't happen, ignore
+                    pass
+            except queue.Empty:
+                # No exception yet; loop again until connected or timeout
+                pass
+        if not self._connected_event.is_set():
             raise TimeoutError("BLE connect timeout")
+        else:
+            logger.info(f"BleHidLikeDevice._init(): FULLY READY!")
 
 
     @property
@@ -75,65 +98,73 @@ class BleHidLikeDevice:
                 pass
 
     async def _async_init(self):
-        # Discover by name hint
-        devices = await BleakScanner.discover()
-        # dev = next((d for d in devices if (d.name or "").lower().startswith(self._device_name_hint.lower())), None)
-        # if dev is None:
-        #     raise RuntimeError(f"BLE device with name containing '{self._device_name_hint}' not found.\ndevices: {devices}")
-        # else:
+        # Repeatedly scan until device found or timeout
+        start_time = time.time()
         found_dev = None
-        for dev in devices:
-            if (found_dev is None) and (dev is not None):
-                # Build and store info about the discovered device, mirroring the example structure
-                info_dict = {'address': dev.address, 'name': dev.name, 'details': dev.details}
-                a_name = dev.name
-                if (a_name is not None) and a_name.startswith('EPOC'):
-                    logging.info(f'found device: {info_dict}')
-                    found_dev = dev 
-                    *headset_name_parts, headset_BT_hex_key = a_name.split(' ')
-                    headset_name = ' '.join(headset_name_parts)
-                    headset_BT_hex_key = headset_BT_hex_key.strip(')(')
-                    info_dict['headset_name'] = headset_name
-                    info_dict['headset_BT_hex_key'] = headset_BT_hex_key
-                    assert len(headset_BT_hex_key) == 8, f"len(headset_BT_hex_key): {len(headset_BT_hex_key)}, headset_BT_hex_key: '{headset_BT_hex_key}'"
-                    serial_number = bytes(("\x00" * 12),'utf-8') + bytearray.fromhex(str(headset_BT_hex_key[6:8] + headset_BT_hex_key[4:6] + headset_BT_hex_key[2:4] + headset_BT_hex_key[0:2]))
-                    info_dict['headset_serial_number'] = serial_number
-                    
+        while (found_dev is None) and ((time.time() - start_time) < self._connect_timeout_s) and (not self._stop_event.is_set()):
+            try:
+                devices = await BleakScanner.discover()
+            except Exception as scan_exc:
+                logger.warning(f"BLE scan failed: {scan_exc}")
+                devices = []
+
+            for dev in devices:
+                if dev is None:
+                    continue
+                name_value = (dev.name or "")
+                if name_value and (self._device_name_hint.lower() in name_value.lower()):
+                    # Build and store info about the discovered device, mirroring the example structure
+                    info_dict = {'address': dev.address, 'name': dev.name, 'details': dev.details}
+                    a_name = dev.name or ""
+                    if a_name.startswith('EPOC'):
+                        try:
+                            *headset_name_parts, headset_BT_hex_key = a_name.split(' ')
+                            headset_name = ' '.join(headset_name_parts)
+                            headset_BT_hex_key = headset_BT_hex_key.strip(')(')
+                            info_dict['headset_name'] = headset_name
+                            info_dict['headset_BT_hex_key'] = headset_BT_hex_key
+                            if len(headset_BT_hex_key) == 8:
+                                serial_number = bytes(("\x00" * 12),'utf-8') + bytearray.fromhex(str(headset_BT_hex_key[6:8] + headset_BT_hex_key[4:6] + headset_BT_hex_key[2:4] + headset_BT_hex_key[0:2]))
+                                info_dict['headset_serial_number'] = serial_number
+                        except Exception:
+                            # Non-fatal; still proceed with device
+                            pass
                     self._device_info_dict = info_dict
-                    logging.info(f'found device: {info_dict}')
-                    
-                # print(f"{dev}\tinfo_dict: {self._device_info_dict}")
-                logging.info(f'{found_dev}\tinfo_dict: {self._device_info_dict}')
+                    logger.info(f"found device: {info_dict}")
+                    found_dev = dev
+                    break
 
-        ## END for dev in devices...
-        logging.info(f"done enumerating devices found_dev: {found_dev}\tinfo_dict: {self._device_info_dict}")
+            if found_dev is None:
+                # Wait a bit before rescanning
+                await asyncio.sleep(self._scan_interval_s)
+        ## END while (found_dev is None) and ((time....
+        logger.info(f"done enumerating devices found_dev: {found_dev}\tinfo_dict: {self._device_info_dict}")
 
-        if (found_dev is not None):
-            self._client = BleakClient(found_dev)
-            logging.info(f"found_device, connecting...")
-            await self._client.connect()
-            if self._client.is_connected:
-                # print(f"Connected to {found_dev}\tinfo_dict: {self._device_info_dict}")
-                logging.info(f"Connected to {found_dev}\tinfo_dict: {self._device_info_dict}")
-            else:
-                logging.error(f"could not connect to {found_dev}")
-                raise ValueError(f'could not connect to {found_dev}')
+        if found_dev is None:
+            raise RuntimeError(f"BLE device not found matching hint '{self._device_name_hint}' within {self._connect_timeout_s}s")
 
-            # # Optionally send start streaming command here if needed
-            # await self._client.write_gatt_char(DATA_UUID, b"\x01\x00", response=False)
+        # Connect
+        self._client = BleakClient(found_dev)
+        logger.info(f"found_device, connecting...")
+        await self._client.connect()
+        if self._client.is_connected:
+            logger.info(f"Connected to {found_dev}\tinfo_dict: {self._device_info_dict}")
+        else:
+            raise RuntimeError(f"Could not connect to {found_dev}")
 
+        # Signal connected immediately so constructor can proceed
+        self._connected_event.set()
+
+        # Optionally send start streaming command here if needed
+        # await self._client.write_gatt_char(DATA_UUID, b"\x01\x00", response=False)
+
+        if self._attempt_notify:
             await self._client.start_notify(DATA_UUID, self._on_notification)
-            # MEMS is optional; uncomment if needed by caller to interleave streams
+            # MEMS is optional; ignore errors
             try:
                 await self._client.start_notify(MEMS_UUID, self._on_notification)
             except Exception:
                 pass
-
-            logging.info(f"all set up! ready to send self._connected_event.set()!")
-            self._connected_event.set()
-        else:
-            logging.error(f"could not find device.")
-            raise ValueError(f'could not find device!')
 
     def _on_notification(self, _handle, data: bytearray):
         # Push raw bytes into queue
@@ -214,7 +245,8 @@ class BleHidLikeDevice:
                 headset_BT_hex_key = headset_BT_hex_key.strip(')(')
                 info_dict['headset_name'] = headset_name
                 info_dict['headset_BT_hex_key'] = headset_BT_hex_key
-                assert len(headset_BT_hex_key) == 9, f"len(headset_BT_hex_key): {len(headset_BT_hex_key)}, headset_BT_hex_key: '{headset_BT_hex_key}'"
+                # Some names include 8 hex digits in parens, e.g. E50202E9
+                assert len(headset_BT_hex_key) == 8, f"len(headset_BT_hex_key): {len(headset_BT_hex_key)}, headset_BT_hex_key: '{headset_BT_hex_key}'"
                 serial_number = bytes(("\x00" * 12),'utf-8') + bytearray.fromhex(str(headset_BT_hex_key[6:8] + headset_BT_hex_key[4:6] + headset_BT_hex_key[2:4] + headset_BT_hex_key[0:2]))
                 info_dict['headset_serial_number'] = serial_number
                 # print(f'{d}\tinfo_dict: {info_dict}') 

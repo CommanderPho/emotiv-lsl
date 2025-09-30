@@ -33,7 +33,7 @@ class EmotivEpocX(EmotivBase):
         if self.is_reverse_engineer_mode:
             print('starting with reverse engineer mode!')
             # self.READ_SIZE = 64
-                           
+
 
     def get_hid_device(self):
         import hid
@@ -44,7 +44,9 @@ class EmotivEpocX(EmotivBase):
 
 
     def get_hw_device(self):
-        # raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
+        if self.hw_device is not None:
+            return self.hw_device
+
         hw_device = None
         if self.backend.value == HardwareConnectionBackend.USB.value:
             import hid
@@ -57,13 +59,16 @@ class EmotivEpocX(EmotivBase):
             from emotiv_lsl.ble_device import BleHidLikeDevice
             ble_device_name_hint: str = 'EPOCX'
             hw_device = BleHidLikeDevice(device_name_hint=ble_device_name_hint)
-
+            logger.info(f'EmotivEpocX.get_hw_device(): hw_device: {hw_device}')
             if self.is_reverse_engineer_mode:
                 logger.debug(f'hw_device: {hw_device}\n\twith info: {hw_device._device_info_dict}\n')
 
         else:
             raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
 
+        ## Cache the current hardware device, especially important for the BLE device
+        self.hw_device = hw_device
+        
         return hw_device
     
 
@@ -82,7 +87,7 @@ class EmotivEpocX(EmotivBase):
                 elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:         
                     serial = hw_device.serial_number                    
                     k, samplingRate, channels = CyKitCompatibilityHelpers.get_sn(model=self.KeyModel, serial_number=serial, a_backend=self.backend)
-                    print(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"') ## leave `self.serial_number = None`
+                    # print(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"') ## leave `self.serial_number = None`
                     logging.debug(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"') # find/replace with `.+ - emotiv_lsl - WARNING - (b['"].+['"])` and `$1`
                     return k ## cryptokey
                 else:

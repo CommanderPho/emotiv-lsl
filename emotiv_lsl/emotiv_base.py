@@ -27,6 +27,8 @@ class EmotivBase():
     is_reverse_engineer_mode: bool = field(default=False)
     enable_electrode_quality_stream: bool = field(default=True)
 
+    hw_device: Optional[Any] = field(default=None)
+
     # def __attrs_post_init__(self):
     #     self.cipher = Cipher(self.serial_number)
     
@@ -74,6 +76,9 @@ class EmotivBase():
 
     def get_hw_device(self):
         # raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
+        if self.hw_device is not None:
+            return self.hw_device
+        
         hw_device = None
         if self.backend.value == HardwareConnectionBackend.USB.value:
             import hid
@@ -86,13 +91,15 @@ class EmotivBase():
             from emotiv_lsl.ble_device import BleHidLikeDevice
             ble_device_name_hint: str = 'EPOC'
             hw_device = BleHidLikeDevice(device_name_hint=ble_device_name_hint)
-
+            logger.info(f'EmotivEpocBase.get_hw_device(): hw_device: {hw_device}')
             if self.is_reverse_engineer_mode:
                 logger.debug(f'hw_device: {hw_device}\n\twith info: {hw_device._device_info_dict}\n')
 
         else:
             raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
 
+        ## Cache the current hardware device, especially important for the BLE device
+        self.hw_device = hw_device
         return hw_device
 
 
@@ -209,23 +216,26 @@ class EmotivBase():
         ## Get the device info
         logger = logging.getLogger(f'emotiv.{self.device_name.replace(" ", "_").lower()}')
         
-        if self.backend.value == HardwareConnectionBackend.USB.value:
-            device = self.get_hid_device()
-            hw_device = hid.Device(path=device['path'])
-            if self.is_reverse_engineer_mode:
-                logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
+        # if self.backend.value == HardwareConnectionBackend.USB.value:
+        #     device = self.get_hid_device()
+        #     hw_device = hid.Device(path=device['path'])
+        #     if self.is_reverse_engineer_mode:
+        #         logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
         
 
-        elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
-            print(f'BLE Bluetooth mode!')
-            device_name_hint = 'EPOC'
-            hw_device = BleHidLikeDevice(device_name_hint=device_name_hint)
-
-            if self.is_reverse_engineer_mode:
-                logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
+        # elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
+        #     # print(f'BLE Bluetooth mode!')
+        #     # device_name_hint = 'EPOC'
+        #     # hw_device = BleHidLikeDevice(device_name_hint=device_name_hint)
+        #     if self.is_reverse_engineer_mode:
+        #         logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
         
-        else:
-            raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
+        # else:
+        #     raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
+        
+
+        hw_device = self.get_hw_device()
+        logger.info(f'EmotivEpocBase.main_loop(): hw_device: {hw_device}')
         
         packet_count = 0
         
