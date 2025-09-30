@@ -167,7 +167,7 @@ class BleHidLikeDevice:
                 pass
 
     def _on_notification(self, _handle, data: bytearray):
-        logger.debug(f"BleHidLikeDevice._on_notification(): data: {data}")
+        logger.info(f"BleHidLikeDevice._on_notification(): data: {data}")
         # Push raw bytes into queue
         self._in_q.put(bytes(data))
 
@@ -178,7 +178,7 @@ class BleHidLikeDevice:
         Mimics hid.Device.read which returns a bytes-like object of length <= size.
         Here we aggregate from notifications until we have `size` bytes.
         """
-        logger.debug(f"BleHidLikeDevice.read(): size: {size}, timeout_ms: {timeout_ms}")
+        logger.info(f"BleHidLikeDevice.read(): size: {size}, timeout_ms: {timeout_ms}")
         deadline = time.time() + (timeout_ms / 1000.0 if timeout_ms and timeout_ms > 0 else 0)
 
         # Drain queue into buffer until enough collected

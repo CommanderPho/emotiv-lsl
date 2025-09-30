@@ -29,10 +29,10 @@ class EmotivEpocX(EmotivBase):
             crypto_key = self.get_crypto_key()
             self.cipher = AES.new(crypto_key, AES.MODE_ECB)
         else:
-            print(f'working cipher was provided on startup!')
+            logger.info(f'working cipher was provided on startup!')
 
         if self.is_reverse_engineer_mode:
-            print('starting with reverse engineer mode!')
+            logger.info('starting with reverse engineer mode!')
             # self.READ_SIZE = 64
 
 
@@ -89,7 +89,7 @@ class EmotivEpocX(EmotivBase):
                     serial = hw_device.serial_number                    
                     k, samplingRate, channels = CyKitCompatibilityHelpers.get_sn(model=self.KeyModel, serial_number=serial, a_backend=self.backend)
                     # print(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"') ## leave `self.serial_number = None`
-                    logging.debug(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"') # find/replace with `.+ - emotiv_lsl - WARNING - (b['"].+['"])` and `$1`
+                    logging.info(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"') # find/replace with `.+ - emotiv_lsl - WARNING - (b['"].+['"])` and `$1`
                     return k ## cryptokey
                 else:
                     logger.warning(f'self.backend.value: {self.backend.value} unexpected!')

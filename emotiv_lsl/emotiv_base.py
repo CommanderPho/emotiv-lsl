@@ -87,7 +87,7 @@ class EmotivBase():
             device = self.get_hid_device()
             hw_device = hid.Device(path=device['path'])
             if self.is_reverse_engineer_mode:
-                logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
+                logger.info(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
 
         elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
             from emotiv_lsl.ble_device import BleHidLikeDevice
@@ -95,7 +95,7 @@ class EmotivBase():
             hw_device = BleHidLikeDevice(device_name_hint=ble_device_name_hint)
             logger.info(f'EmotivEpocBase.get_hw_device(): hw_device: {hw_device}')
             if self.is_reverse_engineer_mode:
-                logger.debug(f'hw_device: {hw_device}\n\twith info: {hw_device._device_info_dict}\n')
+                logger.info(f'hw_device: {hw_device}\n\twith info: {hw_device._device_info_dict}\n')
 
         else:
             raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
@@ -189,10 +189,12 @@ class EmotivBase():
 
 
     def main_loop(self):
+        logger = logging.getLogger(f'emotiv.{self.device_name.replace(" ", "_").lower()}')
+
         if self.backend.value == HardwareConnectionBackend.USB.value:
             import hid
         elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
-            print(f'BLE Bluetooth mode!')
+            logger.info(f'BLE Bluetooth mode!')
             from emotiv_lsl.ble_device import BleHidLikeDevice
         else:
             raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
@@ -205,18 +207,18 @@ class EmotivBase():
         motion_outlet = None
         if self.has_motion_data:
             motion_outlet = StreamOutlet(self.get_lsl_outlet_motion_stream_info())
-            print(f'Setup motion outlet')
+            logger.info(f'Setup motion outlet')
             
         # Create motion outlet if the device supports it
         raw_packet_outlet = None
         if self.is_reverse_engineer_mode:
             raw_packet_outlet = StreamOutlet(self.get_lsl_outlet_raw_debugging_stream_info())
-            print(f'Setup raw_packet_outlet (for reverse-engineering)')
+            logger.info(f'Setup raw_packet_outlet (for reverse-engineering)')
             
         eeg_quality_outlet = None
         
         ## Get the device info
-        logger = logging.getLogger(f'emotiv.{self.device_name.replace(" ", "_").lower()}')
+        
         
         # if self.backend.value == HardwareConnectionBackend.USB.value:
         #     device = self.get_hid_device()
@@ -252,16 +254,16 @@ class EmotivBase():
 
             if self.validate_data(data):
                 if self.enable_debug_logging:
-                    logger.debug(f"Packet #{packet_count}: Valid data packet, length={len(data)}")
+                    logger.info(f"Packet #{packet_count}: Valid data packet, length={len(data)}")
 
                 decoded, eeg_quality_data = self.decode_data(data)
                 
                 if (eeg_quality_data is not None) and len(eeg_quality_data) == 14:
                     if self.is_reverse_engineer_mode:
-                        logger.debug(f'got eeg quality data: {eeg_quality_data}')
+                        logger.info(f'got eeg quality data: {eeg_quality_data}')
                     if eeg_quality_outlet is None:
                         eeg_quality_outlet = StreamOutlet(self.get_lsl_outlet_electrode_quality_stream_info())
-                        logger.debug(f'set up EEG Sensor Quality outlet!')
+                        logger.info(f'set up EEG Sensor Quality outlet!')
                     eeg_quality_outlet.push_sample(eeg_quality_data)
                         
                 # else:
@@ -271,27 +273,27 @@ class EmotivBase():
                     # Check if this is motion data (based on number of channels)
                     if len(decoded) == 6:
                         if self.enable_debug_logging:
-                            logger.debug(f"Packet #{packet_count}: Motion data decoded, {len(decoded)} channels")
+                            logger.info(f"Packet #{packet_count}: Motion data decoded, {len(decoded)} channels")
                         if not self.has_motion_data:
                             self.has_motion_data = True
-                            logger.debug(f'got first motion data!')
+                            logger.info(f'got first motion data!')
 
                         if motion_outlet is None:
                             motion_outlet = StreamOutlet(self.get_lsl_outlet_motion_stream_info())
-                            logger.debug(f'set up motion outlet!')
+                            logger.info(f'set up motion outlet!')
                         motion_outlet.push_sample(decoded)
 
                     elif len(decoded) == 14:  # EEG data has 14 channels
                         if self.enable_debug_logging:
-                            logger.debug(f"Packet #{packet_count}: EEG data decoded, {len(decoded)} channels")
+                            logger.info(f"Packet #{packet_count}: EEG data decoded, {len(decoded)} channels")
                         if eeg_outlet is None:
                             eeg_outlet = StreamOutlet(self.get_lsl_outlet_eeg_stream_info())
-                            logger.debug(f'set up EEG outlet!')                                                        
+                            logger.info(f'set up EEG outlet!')                                                        
                         eeg_outlet.push_sample(decoded)
                     else:
-                        logger.debug(f"Packet #{packet_count}: Unknown data type with {len(decoded)} channels")
+                        logger.error(f"Packet #{packet_count}: Unknown data type with {len(decoded)} channels")
                 else:
-                    logger.debug(f"Packet #{packet_count}: self.decode_data(data) failed -- data packet (skipped)")
+                    logger.warning(f"Packet #{packet_count}: self.decode_data(data) failed -- data packet (skipped)")
             else:
-                logger.debug(f"Packet #{packet_count}: Invalid data packet, length={len(data)}")
+                logger.error(f"Packet #{packet_count}: Invalid data packet, length={len(data)}")
 
