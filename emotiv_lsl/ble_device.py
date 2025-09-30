@@ -83,38 +83,44 @@ class BleHidLikeDevice:
         # else:
         found_dev = None
         for dev in devices:
-            # Build and store info about the discovered device, mirroring the example structure
-            info_dict = {'address': dev.address, 'name': dev.name, 'details': dev.details}
-            a_name = dev.name
-            if (a_name is not None) and a_name.startswith('EPOC'):
-                logging.info(f'found device: {info_dict}')
-                found_dev = dev 
-                *headset_name_parts, headset_BT_hex_key = a_name.split(' ')
-                headset_name = ' '.join(headset_name_parts)
-                headset_BT_hex_key = headset_BT_hex_key.strip(')(')
-                info_dict['headset_name'] = headset_name
-                info_dict['headset_BT_hex_key'] = headset_BT_hex_key
-                assert len(headset_BT_hex_key) == 8, f"len(headset_BT_hex_key): {len(headset_BT_hex_key)}, headset_BT_hex_key: '{headset_BT_hex_key}'"
-                serial_number = bytes(("\x00" * 12),'utf-8') + bytearray.fromhex(str(headset_BT_hex_key[6:8] + headset_BT_hex_key[4:6] + headset_BT_hex_key[2:4] + headset_BT_hex_key[0:2]))
-                info_dict['headset_serial_number'] = serial_number
-                
-                self._device_info_dict = info_dict
-                logging.info(f'found device: {info_dict}')
-                
-            # print(f"{dev}\tinfo_dict: {self._device_info_dict}")
-            logging.info(f'{dev}\tinfo_dict: {self._device_info_dict}')
-            
-        ## end for dev in dev...
-        logging.info(f"done enumerating devices dev: {dev}")
+            if (found_dev is None) and (dev is not None):
+                # Build and store info about the discovered device, mirroring the example structure
+                info_dict = {'address': dev.address, 'name': dev.name, 'details': dev.details}
+                a_name = dev.name
+                if (a_name is not None) and a_name.startswith('EPOC'):
+                    logging.info(f'found device: {info_dict}')
+                    found_dev = dev 
+                    *headset_name_parts, headset_BT_hex_key = a_name.split(' ')
+                    headset_name = ' '.join(headset_name_parts)
+                    headset_BT_hex_key = headset_BT_hex_key.strip(')(')
+                    info_dict['headset_name'] = headset_name
+                    info_dict['headset_BT_hex_key'] = headset_BT_hex_key
+                    assert len(headset_BT_hex_key) == 8, f"len(headset_BT_hex_key): {len(headset_BT_hex_key)}, headset_BT_hex_key: '{headset_BT_hex_key}'"
+                    serial_number = bytes(("\x00" * 12),'utf-8') + bytearray.fromhex(str(headset_BT_hex_key[6:8] + headset_BT_hex_key[4:6] + headset_BT_hex_key[2:4] + headset_BT_hex_key[0:2]))
+                    info_dict['headset_serial_number'] = serial_number
+                    
+                    self._device_info_dict = info_dict
+                    logging.info(f'found device: {info_dict}')
+                    
+                # print(f"{dev}\tinfo_dict: {self._device_info_dict}")
+                logging.info(f'{found_dev}\tinfo_dict: {self._device_info_dict}')
 
-        if found_dev is not None:
+        ## END for dev in devices...
+        logging.info(f"done enumerating devices found_dev: {found_dev}\tinfo_dict: {self._device_info_dict}")
+
+        if (found_dev is not None):
             self._client = BleakClient(found_dev)
+            logging.info(f"found_device, connecting...")
             await self._client.connect()
             if self._client.is_connected:
-                print(f"Connected to {found_dev}\tinfo_dict: {self._device_info_dict}")
+                # print(f"Connected to {found_dev}\tinfo_dict: {self._device_info_dict}")
                 logging.info(f"Connected to {found_dev}\tinfo_dict: {self._device_info_dict}")
-            # Optionally send start streaming command here if needed
-            await self._client.write_gatt_char(DATA_UUID, b"\x01\x00", response=False)
+            else:
+                logging.error(f"could not connect to {found_dev}")
+                raise ValueError(f'could not connect to {found_dev}')
+
+            # # Optionally send start streaming command here if needed
+            # await self._client.write_gatt_char(DATA_UUID, b"\x01\x00", response=False)
 
             await self._client.start_notify(DATA_UUID, self._on_notification)
             # MEMS is optional; uncomment if needed by caller to interleave streams
@@ -123,10 +129,11 @@ class BleHidLikeDevice:
             except Exception:
                 pass
 
+            logging.info(f"all set up! ready to send self._connected_event.set()!")
             self._connected_event.set()
         else:
             logging.error(f"could not find device.")
-            raise ValueError(f'could not fin ddevice!')
+            raise ValueError(f'could not find device!')
 
     def _on_notification(self, _handle, data: bytearray):
         # Push raw bytes into queue
