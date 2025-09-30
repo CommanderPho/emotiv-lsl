@@ -93,12 +93,19 @@ if __name__ == "__main__":
     a_device = find_first_hw_device(backend=HardwareConnectionBackend.BLUETOOTH)
     logger.info(f'a_device: {a_device}')
 
+    _common_kwargs = {
+        'enable_debug_logging': True,
+        'is_reverse_engineer_mode': True,
+    }
+
     if a_device._device_info_dict['headset_name'] == 'EPOCX':
         logger.info(">>> Found Hardware: EPOC X")
         hardcoded_epocX_key_kwargs = {
             'ble_device_name_hint': 'EPOCX',
             'serial_number': b'\xe5\x02\x02\x02\x02\x02\x02\xe9\xe5\xe9\x02\x02\xe9\xe9\x02\xe5', # 'E50202E9',
             'cryptokey': b'\xe5\x02\x02\x02\x02\x02\x02\xe9\xe5\xe9\x02\x02\xe9\xe9\x02\xe5',
+            'hw_device': a_device,
+            **_common_kwargs,
         }
         emotiv_epoc = EmotivEpocX.init_with_serial(**hardcoded_epocX_key_kwargs, backend=HardwareConnectionBackend.BLUETOOTH)
     elif a_device._device_info_dict['headset_name'] == 'EPOC+':
@@ -107,6 +114,8 @@ if __name__ == "__main__":
             'ble_device_name_hint': 'EPOC+',
             'serial_number': b';\x9a\x9a\xcc\xcc\xcc\x9a\xa6;\xa6\x9a\x9a\xa6\xa6\x9a;', #'3B9ACCA6',
             'cryptokey': b';\x9a\x9a\xcc\xcc\xcc\x9a\xa6;\xa6\x9a\x9a\xa6\xa6\x9a;',
+            'hw_device': a_device,
+            **_common_kwargs,
         }
         emotiv_epoc = EmotivEpocPlus.init_with_serial(**hardcoded_epoc_plus_key_kwargs, backend=HardwareConnectionBackend.BLUETOOTH)
     else:
