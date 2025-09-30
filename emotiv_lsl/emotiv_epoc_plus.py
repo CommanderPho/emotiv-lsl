@@ -1,4 +1,3 @@
-import hid
 import logging
 from Crypto.Cipher import AES
 from typing import Dict, List, Tuple, Optional, Callable, Union, Any
@@ -9,6 +8,7 @@ from emotiv_lsl.helpers import HardwareConnectionBackend, CyKitCompatibilityHelp
 from emotiv_lsl.emotiv_base import EmotivBase
 from config import SRATE
 
+logger = logging.getLogger("emotiv_lsl")
 
 @define(slots=False)
 class EmotivEpocPlus(EmotivBase):
@@ -20,7 +20,8 @@ class EmotivEpocPlus(EmotivBase):
     READ_SIZE: int = field(default=32)
     device_name: str = field(default='Emotiv Epoc+')
     KeyModel: int = field(default = 6) # 5 or 6 for Epoc+ according to CyKit
-
+    ble_device_name_hint: str = field(default='EPOC+')
+    
     is_fourteen_bit_mode: bool = field(default=False)
 
 
@@ -30,30 +31,63 @@ class EmotivEpocPlus(EmotivBase):
         
 
     def get_hid_device(self):
+        import hid
         for device in hid.enumerate():
             if device.get('manufacturer_string', '') == 'Emotiv' and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
                 return device
         raise Exception('Emotiv Epoc+ not found')
 
-    def get_crypto_key(self) -> bytearray:
-        serial = self.get_hid_device()['serial_number']
-        
-        # EPOC+ in 16-bit Mode.
-        if not self.is_fourteen_bit_mode:
-            k = ['\0'] * 16
-            k = [sn[-1],sn[-2],sn[-2],sn[-3],sn[-3],sn[-3],sn[-2],sn[-4],sn[-1],sn[-4],sn[-2],sn[-2],sn[-4],sn[-4],sn[-2],sn[-1]]
-        else:
-            # EPOC+ in 14-bit Mode.
-            k = [sn[-1],00,sn[-2],21,sn[-3],00,sn[-4],12,sn[-3],00,sn[-2],68,sn[-1],00,sn[-2],88]
-            
-        self.key = str(''.join(k))
-        self.cipher = AES.new(self.key.encode("utf8"), AES.MODE_ECB)
-        
-        sn = bytearray()
-        for i in range(0, len(serial)):
-            sn += bytearray([ord(serial[i])])
 
-        return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])
+    def get_crypto_key(self) -> bytearray:
+        if (self.serial_number is None):
+                    
+            hw_device = self.get_hw_device()
+            if hw_device is not None:
+                if self.backend.value == HardwareConnectionBackend.USB.value:
+                    serial = self.get_hid_device()['serial_number']
+                    self.serial_number = serial
+
+                    ## do we need/want this?
+                    sn = bytearray()
+                    for i in range(0, len(serial)):
+                        sn += bytearray([ord(serial[i])])
+
+                    # EPOC+ in 16-bit Mode.
+                    if not self.is_fourteen_bit_mode:
+                        k = ['\0'] * 16
+                        k = [sn[-1],sn[-2],sn[-2],sn[-3],sn[-3],sn[-3],sn[-2],sn[-4],sn[-1],sn[-4],sn[-2],sn[-2],sn[-4],sn[-4],sn[-2],sn[-1]]
+                    else:
+                        # EPOC+ in 14-bit Mode.
+                        k = [sn[-1],00,sn[-2],21,sn[-3],00,sn[-4],12,sn[-3],00,sn[-2],68,sn[-1],00,sn[-2],88]
+
+                    self.key = str(''.join(k))
+                    self.cipher = AES.new(self.key.encode("utf8"), AES.MODE_ECB)
+                    # return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])                    
+                    return self.key
+                
+                elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:         
+                    serial = hw_device.serial_number                    
+                    k, samplingRate, channels = CyKitCompatibilityHelpers.get_sn(model=self.KeyModel, serial_number=serial, a_backend=self.backend)
+                    # print(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"') ## leave `self.serial_number = None`
+                    logging.debug(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"') # find/replace with `.+ - emotiv_lsl - WARNING - (b['"].+['"])` and `$1`
+                    #TODO 2025-09-30 12:05: - [ ] This should be wrong and for the EpocX
+                    return k ## cryptokey
+                else:
+                    logger.warning(f'self.backend.value: {self.backend.value} unexpected!')
+                    return None
+
+        else:
+            if isinstance(self.serial_number, bytearray):
+                ## serial is actually bytearray
+                return self.serial_number
+            else:
+                serial = self.serial_number                
+                sn = bytearray()
+                for i in range(0, len(serial)):
+                    sn += bytearray([ord(serial[i])])
+                return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])
+
+
 
     def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
         ch_names = ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']

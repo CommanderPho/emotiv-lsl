@@ -28,7 +28,9 @@ class EmotivBase():
     enable_electrode_quality_stream: bool = field(default=True)
 
     hw_device: Optional[Any] = field(default=None)
-
+    ble_device_name_hint: str = field(default='EPOC')
+    
+    
     # def __attrs_post_init__(self):
     #     self.cipher = Cipher(self.serial_number)
     
@@ -89,7 +91,7 @@ class EmotivBase():
 
         elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
             from emotiv_lsl.ble_device import BleHidLikeDevice
-            ble_device_name_hint: str = 'EPOC'
+            ble_device_name_hint: str = self.ble_device_name_hint # 'EPOC'
             hw_device = BleHidLikeDevice(device_name_hint=ble_device_name_hint)
             logger.info(f'EmotivEpocBase.get_hw_device(): hw_device: {hw_device}')
             if self.is_reverse_engineer_mode:

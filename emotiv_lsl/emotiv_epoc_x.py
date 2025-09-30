@@ -19,6 +19,7 @@ class EmotivEpocX(EmotivBase):
     READ_SIZE: int = field(default=32)
     device_name: str = field(default='Emotiv Epoc X')
     KeyModel: int = field(default = 8) # call Epoc X keymodel 8 to extend CyKit's keymodel system
+    ble_device_name_hint: str = field(default='EPOCX')
     
     is_reverse_engineer_mode: bool = field(default=False)
     
@@ -43,33 +44,33 @@ class EmotivEpocX(EmotivBase):
         raise Exception('Emotiv Epoc X not found')
 
 
-    def get_hw_device(self):
-        if self.hw_device is not None:
-            return self.hw_device
+    # def get_hw_device(self):
+    #     if self.hw_device is not None:
+    #         return self.hw_device
 
-        hw_device = None
-        if self.backend.value == HardwareConnectionBackend.USB.value:
-            import hid
-            device = self.get_hid_device()
-            hw_device = hid.Device(path=device['path'])
-            if self.is_reverse_engineer_mode:
-                logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
+    #     hw_device = None
+    #     if self.backend.value == HardwareConnectionBackend.USB.value:
+    #         import hid
+    #         device = self.get_hid_device()
+    #         hw_device = hid.Device(path=device['path'])
+    #         if self.is_reverse_engineer_mode:
+    #             logger.debug(f'hid_device: {hw_device}\n\twith path: {device["path"]}\n')
 
-        elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
-            from emotiv_lsl.ble_device import BleHidLikeDevice
-            ble_device_name_hint: str = 'EPOCX'
-            hw_device = BleHidLikeDevice(device_name_hint=ble_device_name_hint)
-            logger.info(f'EmotivEpocX.get_hw_device(): hw_device: {hw_device}')
-            if self.is_reverse_engineer_mode:
-                logger.debug(f'hw_device: {hw_device}\n\twith info: {hw_device._device_info_dict}\n')
+    #     elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
+    #         from emotiv_lsl.ble_device import BleHidLikeDevice
+    #         ble_device_name_hint: str = 'EPOCX'
+    #         hw_device = BleHidLikeDevice(device_name_hint=ble_device_name_hint)
+    #         logger.info(f'EmotivEpocX.get_hw_device(): hw_device: {hw_device}')
+    #         if self.is_reverse_engineer_mode:
+    #             logger.debug(f'hw_device: {hw_device}\n\twith info: {hw_device._device_info_dict}\n')
 
-        else:
-            raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
+    #     else:
+    #         raise NotImplementedError(f'self.backend: {self.backend.value} not expected!')
 
-        ## Cache the current hardware device, especially important for the BLE device
-        self.hw_device = hw_device
+    #     ## Cache the current hardware device, especially important for the BLE device
+    #     self.hw_device = hw_device
         
-        return hw_device
+    #     return hw_device
     
 
     def get_crypto_key(self) -> bytearray:
