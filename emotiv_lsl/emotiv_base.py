@@ -56,6 +56,17 @@ class EmotivBase():
         else:
             _obj = cls(serial_number=serial_number, backend=backend, **kwargs) # , cryptokey=cryptokey
         return _obj
+
+
+    @classmethod
+    def init_with_static_cipher(cls, cipher: AES, serial_number: bytearray, backend: HardwareConnectionBackend=HardwareConnectionBackend.USB, **kwargs):
+        """ doesn't require `hid` or USB access, makes the object with an explicit key """
+        # bytearray(b'6566565666756557')  
+        assert cipher is not None
+        assert serial_number is not None and isinstance(serial_number, bytearray), f"serial_number: {serial_number}, type(serial_number): {type(serial_number)}"
+        logger.info(f'.init_with_static_cipher(cipher: {cipher}, serial_number: {serial_number}, ...)')
+        _obj = cls(cipher=cipher, serial_number=serial_number, backend=backend, **kwargs)
+        return _obj
     
 
     def get_crypto_key(self) -> bytearray:

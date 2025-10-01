@@ -1,5 +1,6 @@
 import logging
 import asyncio
+from Crypto.Cipher import AES
 from emotiv_lsl.helpers import HardwareConnectionBackend, CyKitCompatibilityHelpers
 from emotiv_lsl.ble_device import BleHidLikeDevice
 from emotiv_lsl.emotiv_epoc_x import EmotivEpocX
@@ -102,22 +103,24 @@ if __name__ == "__main__":
         logger.info(">>> Found Hardware: EPOC X")
         hardcoded_epocX_key_kwargs = {
             'ble_device_name_hint': 'EPOCX',
-            'serial_number': b'\xe5\x02\x02\x02\x02\x02\x02\xe9\xe5\xe9\x02\x02\xe9\xe9\x02\xe5', # 'E50202E9',
-            'cryptokey': b'\xe5\x02\x02\x02\x02\x02\x02\xe9\xe5\xe9\x02\x02\xe9\xe9\x02\xe5',
+            'serial_number': bytearray(b'\xe5\x02\x02\x02\x02\x02\x02\xe9\xe5\xe9\x02\x02\xe9\xe9\x02\xe5'), # 'E50202E9',
+            'cryptokey': bytearray(b'\xe5\x02\x02\x02\x02\x02\x02\xe9\xe5\xe9\x02\x02\xe9\xe9\x02\xe5'),
             'hw_device': a_device,
             **_common_kwargs,
         }
-        emotiv_epoc = EmotivEpocX.init_with_serial(**hardcoded_epocX_key_kwargs, backend=HardwareConnectionBackend.BLUETOOTH)
+        cipher = AES.new(hardcoded_epocX_key_kwargs['cryptokey'], AES.MODE_ECB)
+        emotiv_epoc = EmotivEpocX.init_with_static_cipher(cipher=cipher, **hardcoded_epocX_key_kwargs, backend=HardwareConnectionBackend.BLUETOOTH)
     elif a_device._device_info_dict['headset_name'] == 'EPOC+':
         logger.info(">>> Found Hardware: EPOC+")
         hardcoded_epoc_plus_key_kwargs = {
             'ble_device_name_hint': 'EPOC+',
-            'serial_number': b';\x9a\x9a\xcc\xcc\xcc\x9a\xa6;\xa6\x9a\x9a\xa6\xa6\x9a;', #'3B9ACCA6',
-            'cryptokey': b';\x9a\x9a\xcc\xcc\xcc\x9a\xa6;\xa6\x9a\x9a\xa6\xa6\x9a;',
+            'serial_number': bytearray(b';\x9a\x9a\xcc\xcc\xcc\x9a\xa6;\xa6\x9a\x9a\xa6\xa6\x9a;'), #'3B9ACCA6',
+            'cryptokey': bytearray(b';\x9a\x9a\xcc\xcc\xcc\x9a\xa6;\xa6\x9a\x9a\xa6\xa6\x9a;'),
             'hw_device': a_device,
             **_common_kwargs,
         }
-        emotiv_epoc = EmotivEpocPlus.init_with_serial(**hardcoded_epoc_plus_key_kwargs, backend=HardwareConnectionBackend.BLUETOOTH)
+        cipher = AES.new(hardcoded_epoc_plus_key_kwargs['cryptokey'], AES.MODE_ECB)
+        emotiv_epoc = EmotivEpocPlus.init_with_static_cipher(cipher=cipher, **hardcoded_epoc_plus_key_kwargs, backend=HardwareConnectionBackend.BLUETOOTH)
     else:
         logger.error(f'a_device._device_info_dict["headset_name"]: {a_device._device_info_dict["headset_name"]} not expected!')
         raise ValueError(f'a_device._device_info_dict["headset_name"]: {a_device._device_info_dict["headset_name"]} not expected!')

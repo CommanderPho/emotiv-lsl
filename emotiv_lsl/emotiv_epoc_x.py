@@ -74,6 +74,8 @@ class EmotivEpocX(EmotivBase):
     
 
     def get_crypto_key(self) -> bytearray:
+        raise NotImplementedError('hardcoded cipher test')
+
         if (self.serial_number is None):
             hw_device = self.get_hw_device()
             if hw_device is not None:
@@ -179,8 +181,6 @@ class EmotivEpocX(EmotivBase):
 
         return info
     
-    
-
 
     def decode_data(self, data) -> Tuple[List, Optional[List]]:
         """ 
@@ -220,12 +220,10 @@ class EmotivEpocX(EmotivBase):
 
         packet_data = ""
         for i in range(2, 16, 2):
-            packet_data = packet_data + \
-                str(self.convertEPOC_PLUS(str(data[i]), str(data[i+1]))) + self.delimiter
+            packet_data = packet_data + str(self.convertEPOC_PLUS(str(data[i]), str(data[i+1]))) + self.delimiter
 
         for i in range(18, len(data), 2):
-            packet_data = packet_data + \
-                str(self.convertEPOC_PLUS(str(data[i]), str(data[i+1]))) + self.delimiter
+            packet_data = packet_data + str(self.convertEPOC_PLUS(str(data[i]), str(data[i+1]))) + self.delimiter
 
         packet_data = packet_data[:-len(self.delimiter)]  # Remove extra delimiter.
         packet_data = packet_data.split(self.delimiter)
