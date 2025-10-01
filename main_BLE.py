@@ -108,7 +108,8 @@ if __name__ == "__main__":
             'hw_device': a_device,
             **_common_kwargs,
         }
-        cipher = AES.new(hardcoded_epocX_key_kwargs['cryptokey'], AES.MODE_ECB)
+        cryptokey = hardcoded_epocX_key_kwargs.pop('cryptokey')
+        cipher = AES.new(cryptokey, AES.MODE_ECB)
         emotiv_epoc = EmotivEpocX.init_with_static_cipher(cipher=cipher, **hardcoded_epocX_key_kwargs, backend=HardwareConnectionBackend.BLUETOOTH)
     elif a_device._device_info_dict['headset_name'] == 'EPOC+':
         logger.info(">>> Found Hardware: EPOC+")
@@ -119,7 +120,8 @@ if __name__ == "__main__":
             'hw_device': a_device,
             **_common_kwargs,
         }
-        cipher = AES.new(hardcoded_epoc_plus_key_kwargs['cryptokey'], AES.MODE_ECB)
+        cryptokey = hardcoded_epoc_plus_key_kwargs.pop('cryptokey')
+        cipher = AES.new(cryptokey, AES.MODE_ECB)
         emotiv_epoc = EmotivEpocPlus.init_with_static_cipher(cipher=cipher, **hardcoded_epoc_plus_key_kwargs, backend=HardwareConnectionBackend.BLUETOOTH)
     else:
         logger.error(f'a_device._device_info_dict["headset_name"]: {a_device._device_info_dict["headset_name"]} not expected!')
