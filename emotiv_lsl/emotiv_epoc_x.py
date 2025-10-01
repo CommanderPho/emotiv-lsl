@@ -111,8 +111,8 @@ class EmotivEpocX(EmotivBase):
 
 
     def get_lsl_source_id(self) -> str:
-        source_id: str = self.get_crypto_key().hex() ## convert from bytearray into a hex string
-                
+        # source_id: str = self.get_crypto_key().hex() ## convert from bytearray into a hex string
+        source_id: str = self.serial_number.hex() ## convert from bytearray into a hex string
         return f"{self.device_name}_{self.KeyModel}_{source_id}"
     
 
