@@ -28,6 +28,11 @@ class BleHidLikeDevice:
         self._thread = None
         self._in_q = queue.Queue()
         self._buffer = bytearray()
+        # Per-characteristic queues/buffers to avoid mixing EEG and MEMS frames
+        self._data_q = queue.Queue()
+        self._mems_q = queue.Queue()
+        self._data_buffer = bytearray()
+        self._mems_buffer = bytearray()
         self._connected_event = threading.Event()
         self._stop_event = threading.Event()
         self._connect_timeout_s = max(1.0, float(connect_timeout_s))
@@ -159,17 +164,22 @@ class BleHidLikeDevice:
         # await self._client.write_gatt_char(DATA_UUID, b"\x01\x00", response=False)
 
         if self._attempt_notify:
-            await self._client.start_notify(DATA_UUID, self._on_notification)
+            await self._client.start_notify(DATA_UUID, self._on_data_notification)
             # MEMS is optional; ignore errors
             try:
-                await self._client.start_notify(MEMS_UUID, self._on_notification)
+                await self._client.start_notify(MEMS_UUID, self._on_mems_notification)
             except Exception:
                 pass
 
-    def _on_notification(self, _handle, data: bytearray):
-        logger.info(f"BleHidLikeDevice._on_notification(): data: {data}")
-        # Push raw bytes into queue
-        self._in_q.put(bytes(data))
+    def _on_data_notification(self, _handle, data: bytearray):
+        logger.info(f"BleHidLikeDevice._on_data_notification(): len={len(data)}")
+        # Push raw EEG bytes into EEG queue
+        self._data_q.put(bytes(data))
+
+    def _on_mems_notification(self, _handle, data: bytearray):
+        logger.info(f"BleHidLikeDevice._on_mems_notification(): len={len(data)}")
+        # Push raw MEMS bytes into MEMS queue
+        self._mems_q.put(bytes(data))
 
 
     def read(self, size: int, timeout_ms: int = 0):
@@ -179,31 +189,40 @@ class BleHidLikeDevice:
         Here we aggregate from notifications until we have `size` bytes.
         """
         logger.info(f"BleHidLikeDevice.read(): size: {size}, timeout_ms: {timeout_ms}")
-        deadline = time.time() + (timeout_ms / 1000.0 if timeout_ms and timeout_ms > 0 else 0)
+        # Backwards-compat: delegate to EEG read
+        return self.read_data(size=size, timeout_ms=timeout_ms)
 
-        # Drain queue into buffer until enough collected
-        while len(self._buffer) < size:
+    def _read_from_queue(self, q: queue.Queue, buf: bytearray, size: int, timeout_ms: int = 0):
+        deadline = time.time() + (timeout_ms / 1000.0 if timeout_ms and timeout_ms > 0 else 0)
+        while len(buf) < size:
             remaining = None
             if timeout_ms and timeout_ms > 0:
                 remaining = max(0, deadline - time.time())
                 if remaining == 0:
                     break
             try:
-                chunk = self._in_q.get(timeout=remaining)
+                chunk = q.get(timeout=remaining)
                 if isinstance(chunk, Exception):
                     raise chunk
-                self._buffer.extend(chunk)
+                buf.extend(chunk)
             except queue.Empty:
                 break
 
-        if len(self._buffer) == 0:
+        if len(buf) == 0:
             return []
-
-        # Return exactly `size` (or whatever is available if smaller)
-        out = self._buffer[:size]
-        del self._buffer[:len(out)]
-        # hid.Device.read returns a list of ints; maintain compatibility with caller expecting iterable of ints
+        out = buf[:size]
+        del buf[:len(out)]
         return list(out)
+
+    def read_data(self, size: int, timeout_ms: int = 0):
+        """Read EEG data frames (DATA_UUID)."""
+        logger.info(f"BleHidLikeDevice.read_data(): size={size}, timeout_ms={timeout_ms}")
+        return self._read_from_queue(self._data_q, self._data_buffer, size=size, timeout_ms=timeout_ms)
+
+    def read_mems(self, size: int, timeout_ms: int = 0):
+        """Read MEMS/IMU data frames (MEMS_UUID)."""
+        logger.info(f"BleHidLikeDevice.read_mems(): size={size}, timeout_ms={timeout_ms}")
+        return self._read_from_queue(self._mems_q, self._mems_buffer, size=size, timeout_ms=timeout_ms)
 
     def close(self):
         logger.info(f"BleHidLikeDevice.close(): stopping...")

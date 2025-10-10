@@ -3,7 +3,7 @@ import logging
 from Crypto.Cipher import AES
 from typing import Dict, List, Tuple, Optional, Callable, Union, Any
 # from nptyping import NDArray
-from pylsl import StreamInfo
+from pylsl import StreamInfo, StreamOutlet
 from attrs import define, field, Factory
 
 from emotiv_lsl.helpers import HardwareConnectionBackend, CyKitCompatibilityHelpers
@@ -74,8 +74,6 @@ class EmotivEpocX(EmotivBase):
     
 
     def get_crypto_key(self) -> bytearray:
-        raise NotImplementedError('hardcoded cipher test')
-
         if (self.serial_number is None):
             hw_device = self.get_hw_device()
             if hw_device is not None:
@@ -85,13 +83,12 @@ class EmotivEpocX(EmotivBase):
                     sn = bytearray()
                     for i in range(0, len(serial)):
                         sn += bytearray([ord(serial[i])])
-                    return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])                    
+                    return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])
 
-                elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:         
-                    serial = hw_device.serial_number                    
+                elif self.backend.value == HardwareConnectionBackend.BLUETOOTH.value:
+                    serial = hw_device.serial_number
                     k, samplingRate, channels = CyKitCompatibilityHelpers.get_sn(model=self.KeyModel, serial_number=serial, a_backend=self.backend)
-                    # print(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"') ## leave `self.serial_number = None`
-                    logging.info(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"') # find/replace with `.+ - emotiv_lsl - WARNING - (b['"].+['"])` and `$1`
+                    logging.info(f'BLE HARDWARE MODE: serial: "{serial}", k: "{k}"')
                     return k ## cryptokey
                 else:
                     logger.warning(f'self.backend.value: {self.backend.value} unexpected!')
@@ -199,12 +196,6 @@ class EmotivEpocX(EmotivBase):
         data = [el ^ 0x55 for el in data]
         data = self.cipher.decrypt(bytearray(data))
         
-        # Check for motion/gyro packet
-        if str(data[1]) == "32":
-            if self.enable_debug_logging:
-                logging.getLogger('emotiv.epoc_x').debug(f"Motion/gyro packet detected: data[1]={data[1]}")
-            return self.decode_motion_data(data), None ## no `eeg_quality_data` for motion packets
-
         ## Check for quality values
         eeg_quality_data = None
         if self.enable_electrode_quality_stream:
@@ -286,3 +277,87 @@ class EmotivEpocX(EmotivBase):
             return (len(data) == self.READ_SIZE)
         else:
             return len(data) == 32
+
+    # ---------------- BLE-specific helpers & loop ----------------
+    def _decode_eeg_ble(self, payload: list) -> Tuple[Optional[List[float]], Optional[List[float]]]:
+        """Decode EEG from BLE DATA_UUID notification payload."""
+        if not payload:
+            return None, None
+        return self.decode_data(payload)
+
+    def _decode_mems_ble(self, payload: list) -> Optional[List[float]]:
+        """Decode MEMS from BLE MEMS_UUID notification payload."""
+        if not payload:
+            return None
+        # EPOC X BLE MEMS frames appear to be clear-text on some firmware; decrypt conditionally
+        data = payload
+        try:
+            # Try decrypt path; if sizes mismatch or nonsense, fall back
+            tmp = [el ^ 0x55 for el in payload]
+            tmp = self.cipher.decrypt(bytearray(tmp))
+            if len(tmp) >= 32:
+                data = list(tmp)
+        except Exception:
+            pass
+        return self.decode_motion_data(data)
+
+    def main_loop(self):
+        """Override for BLE to read EEG and MEMS from separate queues; fallback to base for USB."""
+        if self.backend.value != HardwareConnectionBackend.BLUETOOTH.value:
+            return super().main_loop()
+
+        logger = logging.getLogger(f'emotiv.{self.device_name.replace(" ", "_").lower()}')
+        logger.info('BLE Bluetooth mode (Epoc X) with separate EEG/MEMS streams')
+
+        eeg_outlet = None
+        motion_outlet = None
+        raw_packet_outlet = None
+        eeg_quality_outlet = None
+
+        if self.is_reverse_engineer_mode:
+            raw_packet_outlet = StreamOutlet(self.get_lsl_outlet_raw_debugging_stream_info())
+            logger.info('Setup raw_packet_outlet (for reverse-engineering)')
+
+        hw_device = self.get_hw_device()
+        assert hw_device is not None
+
+        eeg_count = 0
+        mems_count = 0
+        debug_frames = 10 if self.enable_debug_logging else 0
+
+        while True:
+            eeg_payload = hw_device.read_data(self.READ_SIZE, timeout_ms=10)
+            if eeg_payload:
+                eeg_count += 1
+                if raw_packet_outlet is not None:
+                    raw_packet_outlet.push_sample(eeg_payload)
+                if debug_frames > 0 and self.is_reverse_engineer_mode:
+                    logger.info(f'EEG[{eeg_count}]: {bytes(eeg_payload).hex()}')
+                    debug_frames -= 1
+                decoded, eeg_quality_data = self._decode_eeg_ble(eeg_payload)
+                if decoded is not None:
+                    if eeg_outlet is None:
+                        eeg_outlet = StreamOutlet(self.get_lsl_outlet_eeg_stream_info())
+                        logger.info('set up EEG outlet!')
+                    eeg_outlet.push_sample(decoded)
+                if (eeg_quality_data is not None) and len(eeg_quality_data) == 14:
+                    if eeg_quality_outlet is None:
+                        eeg_quality_outlet = StreamOutlet(self.get_lsl_outlet_electrode_quality_stream_info())
+                        logger.info('set up EEG Sensor Quality outlet!')
+                    eeg_quality_outlet.push_sample(eeg_quality_data)
+
+            mems_payload = hw_device.read_mems(self.READ_SIZE, timeout_ms=5)
+            if mems_payload:
+                mems_count += 1
+                if debug_frames > 0 and self.is_reverse_engineer_mode:
+                    logger.info(f'MEMS[{mems_count}]: {bytes(mems_payload).hex()}')
+                    debug_frames -= 1
+                motion = self._decode_mems_ble(mems_payload)
+                if motion is not None and len(motion) == 6:
+                    if not self.has_motion_data:
+                        self.has_motion_data = True
+                        logger.info('got first motion data!')
+                    if motion_outlet is None:
+                        motion_outlet = StreamOutlet(self.get_lsl_outlet_motion_stream_info())
+                        logger.info('set up motion outlet!')
+                    motion_outlet.push_sample(motion)
