@@ -34,6 +34,7 @@ class EmotivEpocX(EmotivBase):
                            
 
     def get_hid_device(self):
+        # Default Windows VM flow uses Flutter `hid4flutter`; this is the optional Python HID path.
         import hid
         for device in hid.enumerate():
             if (device.get('manufacturer_string', '') == 'Emotiv') and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):

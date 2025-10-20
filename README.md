@@ -8,14 +8,15 @@ LSL (Lab Streaming Layer) server for the Emotiv EPOC X headset, based on the ori
 
 ## Prerequisites
 ### Dependencies
-- **Python 3.8**: Create a dedicated conda environment.
+- **Python 3.8**: Create a dedicated conda/micromamba environment.
 - **Liblsl**: Install the LSL library for Python.
-- **Additional packages**: Use `requirements.txt` to install necessary dependencies.
+- **Additional packages**: Use `requirements.txt` (or `requirements_for_mamba.txt`) to install necessary dependencies.
+- Note: Device I/O is handled by a Flutter-side plugin `hid4flutter`. No Python `hid`/`hidapi` is required for the Windows VM workflow documented here.
 
 ---
 
 ## Installation
-### Basic Steps
+### Basic Steps (Windows 10 VM)
 1. **Create a conda environment**: 
    ```bash
    conda create -n lsl_env python=3.8
@@ -28,6 +29,23 @@ LSL (Lab Streaming Layer) server for the Emotiv EPOC X headset, based on the ori
    ```bash
    conda install -c conda-forge liblsl
    pip install -r requirements.txt
+   ```
+4. Proceed with the Windows VM deployment workflow using the PowerShell launcher scripts (see `logs_and_notes/DEPLOYMENT.md`).
+
+### Optional: Pure-Python HID path (legacy/advanced)
+If you plan to run `python main.py` directly and access the USB dongle from Python instead of using the Flutter `hid4flutter` bridge, you will need Python HID support. This is not required for the default Windows VM workflow.
+
+1. Install platform HID prerequisites (varies by OS). On Windows, place `hidapi.dll` on PATH, for example:
+   ```powershell
+   copy "hidapi-win\x64\hidapi.dll" "C:\\Users\\pho\\micromamba\\envs\\lsl_env\\Library\\bin\\"
+   ```
+2. Install the `hid` Python package if your environment does not include it:
+   ```bash
+   pip install hid
+   ```
+3. Run the server:
+   ```bash
+   python main.py
    ```
 
 ---
@@ -179,7 +197,8 @@ python main.py
 Mamba python env path: `"C:\Users\pho\micromamba\envs\lsl_env\python.exe"`
 
 
-### Had to install `hidapi-win` manually:
+### Legacy note (historical): `hidapi-win` manual install
+This section documents prior experimentation with Python `hid`/`hidapi`. It is no longer required for the Windows VM workflow that uses Flutter `hid4flutter` for device I/O.
 1. Downloaded the latest release from https://github.com/libusb/hidapi/releases
 [hidapi-releases](https://github.com/libusb/hidapi/releases/tag/hidapi-0.15.0) and unzippped it in the `emotiv-lsl` folder.
 ```
@@ -198,7 +217,7 @@ hidapi-win
  ```
 
 ```
-copy "C:\Users\pho\repos\emotiv-lsl\hidapi-win\x64\hidapi.dll" "C:\Users\pho\micromamba\envs\lsl_env\Library\bin\"
+REM Legacy only: not required with `hid4flutter`
 ```
 
 
@@ -281,7 +300,7 @@ uv add hidapi
 
 
 
-### Not working `pip install hid`
+### Legacy troubleshooting: Python `hid` install issues (not required with `hid4flutter`)
 ```bash
 ➜  emotiv-lsl git:(main) uv add hid
 Resolved 219 packages in 735ms

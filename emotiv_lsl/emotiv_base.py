@@ -1,5 +1,6 @@
 from typing import Dict, List, Tuple, Optional, Callable, Union, Any
-# import hid
+# Note: Default Windows VM workflow uses Flutter `hid4flutter` for device I/O.
+# Python HID paths remain for optional/legacy usage and non-Flutter environments.
 import logging
 from Crypto.Cipher import AES
 import numpy as np
@@ -60,7 +61,8 @@ class EmotivBase():
 
 
     def get_hid_device(self):
-        # raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
+        # Default Windows VM flow does not require Python `hid`.
+        # This optional path discovers devices via Python HID for direct access.
         import hid
         for device in hid.enumerate():
             if device.get('manufacturer_string', '') == 'Emotiv' and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
@@ -149,6 +151,8 @@ class EmotivBase():
 
 
     def main_loop(self):
+        # Optional HID path for direct USB access from Python.
+        # The Windows VM spec uses Flutter `hid4flutter` instead.
         import hid
 
         # Create EEG outlet

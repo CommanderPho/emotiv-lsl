@@ -34,7 +34,7 @@ The system SHALL start the LSL server (`main.py`) in a dedicated PowerShell wind
 
 #### Scenario: Server detects and connects to device
 - **WHEN** LSL server runs with Emotiv device USB dongle present and headset powered on
-- **THEN** the server SHALL successfully establish HID connection and begin streaming EEG and Motion data
+- **THEN** the server SHALL successfully establish device connection via the `hid4flutter`-backed interface and begin streaming EEG and Motion data
 
 ### Requirement: BSL Recorder Components
 The system SHALL start BSL (Brain Streaming Layer) recorder processes to capture LSL streams to disk. Recorders MUST run in separate windows, target specific streams (EEG, Motion), and write to configured output directories.
@@ -73,7 +73,7 @@ The system SHALL use micromamba environment management to ensure consistent Pyth
 #### Scenario: Reproducible deployment across VMs
 - **WHEN** launcher script executes on any Windows 10 VM with micromamba installed
 - **THEN** the script SHALL:
-  - Use consistent `lsl_env` environment with pinned Python 3.8 and all dependencies (pylsl, hid, pycryptodome, bsl)
+- Use consistent `lsl_env` environment with pinned Python 3.8 and all dependencies (pylsl, pycryptodome, bsl). Device I/O is provided by the Flutter `hid4flutter` plugin (no Python `hid`/`hidapi` dependency).
   - Run identically on different physical or virtual Windows machines
   - Produce same initialization logs and stream outputs
 

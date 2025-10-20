@@ -78,10 +78,7 @@ All components run concurrently in separate PowerShell windows, managed by `laun
    pip install -r requirements_for_mamba.txt
    ```
 
-6. **Copy hidapi DLL** (Windows-specific step)
-   ```powershell
-   copy "hidapi-win\x64\hidapi.dll" "C:\Users\pho\micromamba\envs\lsl_env\Library\bin\"
-   ```
+6. (No Python hid/hidapi step) Device I/O is handled via the Flutter `hid4flutter` plugin.
 
 7. **Verify environment**
    ```powershell
@@ -166,7 +163,7 @@ emotiv-lsl/
 micromamba create -n lsl_env python=3.8
 ```
 
-### Issue: "Unable to open device" (hid.HIDException)
+### Issue: "Unable to open device"
 
 **Cause**: 
 - Headset not powered on
@@ -197,16 +194,12 @@ micromamba create -n lsl_env python=3.8
 
 ### Issue: LSL outlets not created (Device not found)
 
-**Cause**: Device driver or HID issues
+**Cause**: Device driver or connection issues
 
 **Solution**:
 1. Verify Emotiv EPOC dongle VID:PID is `1234:ed02` (Device Manager)
-2. Check `hidapi.dll` is copied to: `C:\Users\pho\micromamba\envs\lsl_env\Library\bin\`
-3. Reinstall hidapi:
-   ```powershell
-   pip uninstall hid
-   pip install hid
-   ```
+2. Ensure the Flutter app using `hid4flutter` is running and exposing the device interface if applicable
+3. Power-cycle the dongle or try a different USB port
 
 ---
 

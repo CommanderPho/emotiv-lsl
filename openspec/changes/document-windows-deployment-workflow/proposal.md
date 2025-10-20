@@ -8,6 +8,7 @@ The emotiv-lsl project runs on multiple platforms (Windows, macOS, Linux), but W
 - **ADD** documentation of the PowerShell launcher scripts and their responsibilities.
 - **ADD** specifications for LSL server startup, BSL component coordination, and output recording.
 - **ADD** failure handling and validation requirements for the deployment workflow.
+- **UPDATE** device connection approach: use Flutter `hid4flutter` for device I/O instead of Python `hid`/`hidapi`; remove Python HID dependency from environment docs.
 
 This ensures:
 - New contributors understand the standard deployment pattern.
@@ -23,3 +24,4 @@ This ensures:
   - `main.py` (LSL server entry point)
   - `emotiv_lsl/emotiv_epoc_x.py` (device/stream initialization)
 - **Documentation**: `logs_and_notes/` (setup logs), `README.md`, `openspec/specs/deployment/spec.md`
+- **Dependencies**: Remove Python `hid`/`hidapi` setup from Windows steps; device I/O handled via Flutter `hid4flutter` integration.

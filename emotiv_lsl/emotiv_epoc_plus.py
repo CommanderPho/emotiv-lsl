@@ -1,4 +1,10 @@
-import hid
+"""
+Note: Default Windows VM workflow uses Flutter `hid4flutter` for device I/O.
+This module retains Python HID usage for optional/legacy workflows and
+non-Flutter environments. To use the optional path, ensure `hidapi.dll` is on
+PATH and the `hid` Python package is installed.
+"""
+import importlib
 import logging
 from Crypto.Cipher import AES
 from typing import Dict, List, Tuple, Optional, Callable, Union, Any
@@ -29,6 +35,8 @@ class EmotivEpocPlus(EmotivBase):
         
 
     def get_hid_device(self):
+        # Optional Python HID path (legacy/advanced). Lazily import to avoid hard dep.
+        hid = importlib.import_module('hid')
         for device in hid.enumerate():
             if device.get('manufacturer_string', '') == 'Emotiv' and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
                 return device

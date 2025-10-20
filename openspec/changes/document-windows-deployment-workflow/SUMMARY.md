@@ -141,13 +141,13 @@ The emotiv-lsl project runs on multiple platforms (Windows, macOS, Linux), but *
 micromamba create -n lsl_env python=3.8
 micromamba install -c conda-forge liblsl
 pip install -r requirements_for_mamba.txt
-copy hidapi-win\x64\hidapi.dll ...
+# No Python hid/hidapi dependency; device I/O handled via Flutter `hid4flutter`
 ```
 
 **Troubleshooting Coverage**:
 - micromamba installation / PATH issues
 - Environment not found
-- HID device errors
+- Device connection errors
 - Service/permission issues
 - VMware shared folder path issues
 - Device driver issues

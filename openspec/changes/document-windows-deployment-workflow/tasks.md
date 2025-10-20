@@ -10,7 +10,7 @@
 ## 2. Integration & Validation
 
 - [ ] 2.1 Update `README.md` with Windows 10 VM quick-start section referencing the launcher scripts
-- [ ] 2.2 Create `logs_and_notes/DEPLOYMENT.md` with step-by-step Windows deployment guide
+- [ ] 2.2 Create `logs_and_notes/DEPLOYMENT.md` with step-by-step Windows deployment guide (remove Python `hid`/`hidapi`; note Flutter `hid4flutter` handles device I/O)
 - [ ] 2.3 Validate spec format with `openspec validate document-windows-deployment-workflow --strict`
 - [ ] 2.4 Manual test: run `launch_emotiv_lsl.ps1` on Windows 10 VM and verify all components start successfully
 - [ ] 2.5 Verify LSL server and recorders output valid streams (validate with `bsl_stream_viewer` or logs)
