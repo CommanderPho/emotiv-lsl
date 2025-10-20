@@ -373,3 +373,12 @@ micromamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X Motion' --b
 open /usr/local/opt/labrecorder/LabRecorder/LabRecorder.app
 
 ```
+
+
+# Apogee Windows Native 2025-10-20
+```
+micromamba install git pip
+pip install git+https://github.com/CommanderPho/phopylslhelper.git
+
+
+```
