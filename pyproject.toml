@@ -16,7 +16,7 @@ dependencies = [
     "pycryptodome>=3.23.0",
     "pylsl>=1.16.2",
     "seaborn>=0.13.2",
-    "setuptools>=75.3.2",
+    "setuptools>=75.3.2,<81",
     "wheel>=0.45.1",
     "pyqt5>=5.15.7,<6",
     "pyqt5-qt5==5.15.2",
