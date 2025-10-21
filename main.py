@@ -1,4 +1,8 @@
 import logging
+import os
+# Add the directory containing your DLL
+os.add_dll_directory(r"C:\Users\pho\repos\EmotivEpoc\emotiv-lsl\hidapi-win\x64") 
+
 from emotiv_lsl.emotiv_epoc_x import EmotivEpocX
 
 if __name__ == "__main__":
