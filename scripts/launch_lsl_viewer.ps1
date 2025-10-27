@@ -23,11 +23,30 @@ Write-Host "Starting BSL Viewers..." -ForegroundColor Cyan
 # Start-CommandWindow -Title "BSL EEG Viewer" -Command "cd '$repoRoot'; micromamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X' --record_dir '\\vmware-host\Shared Folders\Emotiv Epoc EEG Project\EEG Recordings - Any\EEG Recordings - Dropbox\EmotivEpocX_EEGRecordings' --bp_low 1.0 --bp_high 58.0;"
 # Start-CommandWindow -Title "BSL MotionViewer" -Command "cd '$repoRoot'; micromamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X Motion' --record_dir '//vmware-host/Shared Folders/Emotiv Epoc EEG Project/EEG Recordings - Any/EEG Recordings - Dropbox/EmotivEpocX_EEGRecordings/MOTION_RECORDINGS' --bp_off;"
 
+## Check which of the record_dir's exist on the current computer, and choose that one:
+# Define possible recording directories
+$possible_record_dirs = @(
+    "E:\Dropbox (Personal)\Databases\UnparsedData\EmotivEpocX_EEGRecordings",
+    "\\vmware-host\Shared Folders\Emotiv Epoc EEG Project\EEG Recordings - Any\EEG Recordings - Dropbox\EmotivEpocX_EEGRecordings"
+)
+
+# Pick the first existing directory
+$record_dir = $possible_record_dirs | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if (-not $record_dir) {
+    Write-Host "⚠️  No valid recording directory found!" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Using record directory: $record_dir" -ForegroundColor Yellow
+
+
 # Activate the lsl_env environment and run the bsl_stream_viewer
 try {
     Write-Host "Activating lsl_env environment and starting bsl_stream_viewer..." -ForegroundColor Cyan
-    Start-CommandWindow -Title "BSL EEG Viewer" -Command "cd '$repoRoot'; micromamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X' --record_dir '\\vmware-host\Shared Folders\Emotiv Epoc EEG Project\EEG Recordings - Any\EEG Recordings - Dropbox\EmotivEpocX_EEGRecordings' --bp_low 1.0 --bp_high 58.0;"
-    Start-CommandWindow -Title "BSL MotionViewer" -Command "cd '$repoRoot'; micromamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X Motion' --record_dir '//vmware-host/Shared Folders/Emotiv Epoc EEG Project/EEG Recordings - Any/EEG Recordings - Dropbox/EmotivEpocX_EEGRecordings/MOTION_RECORDINGS' --bp_off --CAR_off;"
+    Start-CommandWindow -Title "BSL EEG Viewer" -Command "cd '$repoRoot'; micromamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X' --record_dir '$record_dir' --bp_low 1.0 --bp_high 58.0;"
+    Start-CommandWindow -Title "BSL MotionViewer" -Command "cd '$repoRoot'; micromamba activate lsl_env; bsl_stream_viewer --stream_name 'Epoc X Motion' --record_dir '$record_dir/MOTION_RECORDINGS' --bp_off --CAR_off;"
+
     Write-Host "All components launched successfully!" -ForegroundColor Green
 
 }
