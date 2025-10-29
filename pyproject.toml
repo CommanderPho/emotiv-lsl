@@ -28,7 +28,9 @@ dependencies = [
     "nptyping>=2.5.0",
     "bsl",
     "phopylslhelper",
+    "hid==1.0.4",
 ]
+
 
 [tool.uv.sources]
 bsl = { git = "https://github.com/CommanderPho/bsl.git" }

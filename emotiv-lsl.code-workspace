@@ -77,6 +77,14 @@
 				"source": "Git Bash"
 			}
 		},
-		"terminal.integrated.defaultProfile.windows": "lsl-env-powershell"
+		"terminal.integrated.defaultProfile.windows": "lsl-env-powershell",
+		"python.languageServer": "None",
+		"editor.fontSize": 12,
+		"files.exclude": {
+			"**/__pycache__": true
+		},
+		"search.exclude": {
+			"**/__pycache__": true
+		}
 	}
 }

@@ -6,6 +6,13 @@ Connects to an LSL stream and prints EEG information.
 
 import time
 import numpy as np
+# from bsl import StreamReceiver
+# from bsl.lsl import resolve_streams
+
+
+import pylsl
+from pylsl import resolve_streams, StreamInfo, StreamInlet, StreamOutlet
+
 from bsl import StreamReceiver
 from bsl.lsl import resolve_streams
 
