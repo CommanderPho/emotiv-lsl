@@ -202,6 +202,37 @@ copy "C:\Users\pho\repos\emotiv-lsl\hidapi-win\x64\hidapi.dll" "C:\Users\pho\mic
 ```
 
 
+## 2025-10-29 - proposed UV .venv equiv
+
+copy "C:\Users\pho\repos\emotiv-lsl\hidapi-win\x64\hidapi.dll" ".venv\Scripts\"
+
+PATH=C:\Users\pho\repos\emotiv-lsl\hidapi-win\x64;%PATH%
+
+```
+ hid                        1.0.4               pypi_0                  pypi 
+```
+
+```python
+(lsl_env) PS C:\Users\pho\repos\EmotivEpoc\emotiv-lsl> python -m pip show hid
+Name: hid
+Version: 1.0.4
+Summary: ctypes bindings for hidapi
+Home-page: https://github.com/apmorton/pyhidapi
+Author: Austin Morton
+Author-email: amorton@juvsoft.com
+License: MIT
+Location: c:\users\pho\micromamba\envs\lsl_env\lib\site-packages
+Requires:
+Required-by:
+(lsl_env) PS C:\Users\pho\repos\EmotivEpoc\emotiv-lsl> 
+```
+
+```ps1
+$env:PATH = "$PWD\hidapi-win\x64;" + $env:PATH
+uv run python main.py
+```
+
+
 
 ## SUCESS - 2023-06-18 - Got Completely working with my new Emotiv Epoc X via USB reciever.
 I discovered that you have to launch several terminals: 
@@ -374,5 +405,14 @@ micromamba activate lsl_env; bsl_stream_viewer --bp_off --CAR_off
 ```bash
 
 open /usr/local/opt/labrecorder/LabRecorder/LabRecorder.app
+
+```
+
+
+# Apogee Windows Native 2025-10-20
+```
+micromamba install git pip
+pip install git+https://github.com/CommanderPho/phopylslhelper.git
+
 
 ```

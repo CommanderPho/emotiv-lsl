@@ -26,7 +26,8 @@ class EmotivEpocPlus(EmotivBase):
     def __attrs_post_init__(self):
         ## immediately calls the self.get_crypto_key() function to try and set self.cypher
         self.cipher = AES.new(self.get_crypto_key(), AES.MODE_ECB)
-        
+        self.init_EasyTimeSyncParsingMixin()
+
 
     def get_hid_device(self):
         for device in hid.enumerate():

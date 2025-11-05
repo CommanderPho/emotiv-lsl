@@ -1,20 +1,24 @@
 from typing import Dict, List, Tuple, Optional, Callable, Union, Any
-import hid
+from datetime import datetime, timedelta
+# import hid
 import logging
+from Crypto.Cipher import AES
 import numpy as np
 from nptyping import NDArray
+import pylsl
 from pylsl import StreamInfo, StreamOutlet
 from attrs import define, field, Factory
+from phopylslhelper.easy_time_sync import EasyTimeSyncParsingMixin, readable_dt_str, from_readable_dt_str
+
 
 @define(slots=False)
-class EmotivBase():
+class EmotivBase(EasyTimeSyncParsingMixin):
     READ_SIZE: int = field(default=32)
     serial_number: str = field(default=None)
     device_name: str = field(default='UnknownEmotivHeadset')
     delimiter: str = field(default=',')
-    cipher: Any = field(init=False)
-    KeyModel: int = field(default = 1)
-    
+    cipher: Any = field(default=None)
+    KeyModel: int = field(default = 1)    
     
     has_motion_data: bool = field(default=False)
     enable_debug_logging: bool = field(default=False)
@@ -35,33 +39,64 @@ class EmotivBase():
         """The eeg_quality_channel_names property."""
         return [f'q{a_name}' for a_name in self.eeg_channel_names] ## add the 'q' prefix, like ['qAF3', 'qF7', ...]
         
-    def get_hid_device(self):
-        for device in hid.enumerate():
-            if device.get('manufacturer_string', '') == 'Emotiv' and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
-                return device
-        raise Exception('Emotiv Epoc Base Headset not found')
+
+    @classmethod
+    def init_with_serial(cls, serial_number: str, cryptokey: Optional[bytearray]=None, **kwargs):
+        """ doesn't require `hid` or USB access, makes the object with an explicit key """
+        # bytearray(b'6566565666756557')        
+        if cryptokey is not None:
+            cipher = AES.new(cryptokey, AES.MODE_ECB)
+            _obj = cls(cipher=cipher, **kwargs) # , cryptokey=cryptokey
+        else:
+            _obj = cls(serial_number=serial_number, **kwargs) # , cryptokey=cryptokey
+        return _obj
     
+
+    def __attrs_post_init__(self):
+        self.init_EasyTimeSyncParsingMixin()
+        
+
     def get_crypto_key(self) -> bytearray:
-        raise NotImplementedError(
-            'get_crypto_key method must be implemented in subclass')
+        raise NotImplementedError('get_crypto_key method must be implemented in subclass')
 
 
     def get_lsl_source_id(self) -> str:
         return f"{self.device_name}_{self.KeyModel}_{self.get_crypto_key()}"
 
 
-
     def get_hid_device(self):
-        raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
+        # raise NotImplementedError(f'Specific hardware class (e.g. Epoc X) must override this to provide a concrete implementation.')
+        import hid
+        for device in hid.enumerate():
+            if device.get('manufacturer_string', '') == 'Emotiv' and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
+                return device
+        raise Exception('Emotiv Epoc Base Headset not found')
         pass
+    
+
+
+    def add_lsl_outlet_info_common(self, info: StreamInfo) -> StreamInfo:
+        """ adds common LSL metadata
+        """
+        # Add some metadata
+        info.desc().append_child_value("manufacturer", "emotiv_lsl")
+        info.desc().append_child_value("version", "0.1.1")
+        info.desc().append_child_value("description", "Logged by the open-source tool 'emotiv_lsl' to record raw data from Emotiv headsets.")
+        ## add a custom timestamp field to the stream info:
+        info = self.EasyTimeSyncParsingMixin_add_lsl_outlet_info(info=info)
+        return info
+    
+
 
     def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
         """Create LSL stream for EEG sensor data"""
-        pass
+        info = self.add_lsl_outlet_info_common(info=info)
+        return info
 
     def get_lsl_outlet_motion_stream_info(self) -> StreamInfo:
         """Create LSL stream info for motion sensor data (accelerometer + gyroscope)"""
-        pass
+        info = self.add_lsl_outlet_info_common(info=info)
+        return info
     
 
     def get_lsl_outlet_raw_debugging_stream_info(self) -> StreamInfo:
@@ -75,11 +110,13 @@ class EmotivBase():
         packet_size = 32  # bytes
         dtype = 'int8'
         info = StreamInfo('Epoc X DebugRaw', type="Raw", channel_count=packet_size, nominal_srate=0, channel_format=dtype, source_id="debug_raw_001")
+        info = self.add_lsl_outlet_info_common(info=info)
         return info
     
 
     def get_lsl_outlet_electrode_quality_stream_info(self) -> StreamInfo:
         """ Create LSL stream for EEG sensor quality data. Only active if `self.enable_electrode_quality_stream` is True """
+        info = self.add_lsl_outlet_info_common(info=info)
         pass
     
         
@@ -136,6 +173,8 @@ class EmotivBase():
 
 
     def main_loop(self):
+        import hid
+
         # Create EEG outlet
         eeg_outlet = None 
 

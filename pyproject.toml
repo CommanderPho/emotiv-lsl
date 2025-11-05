@@ -1,7 +1,7 @@
 [project]
 name = "emotiv-lsl"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.1.3"
+description = "LSL server for Emotiv EPOC X, much more modern than others (~2025) "
 readme = "README.md"
 requires-python = ">=3.8.10"
 dependencies = [
@@ -16,7 +16,7 @@ dependencies = [
     "pycryptodome>=3.23.0",
     "pylsl>=1.16.2",
     "seaborn>=0.13.2",
-    "setuptools>=75.3.2",
+    "setuptools>=75.3.2,<81",
     "wheel>=0.45.1",
     "pyqt5>=5.15.7,<6",
     "pyqt5-qt5==5.15.2",
@@ -27,10 +27,14 @@ dependencies = [
     "pyqtgraph>=0.13.3",
     "nptyping>=2.5.0",
     "bsl",
+    "phopylslhelper",
+    "hid==1.0.4",
 ]
+
 
 [tool.uv.sources]
 bsl = { git = "https://github.com/CommanderPho/bsl.git" }
+phopylslhelper = { path = "../LSL_REPOS/LSL/PhoPyLSLhelper", editable = true }
 
 
 

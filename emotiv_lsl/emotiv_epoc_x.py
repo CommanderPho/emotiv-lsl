@@ -1,13 +1,17 @@
-import hid
+
 import logging
 from Crypto.Cipher import AES
 from typing import Dict, List, Tuple, Optional, Callable, Union, Any
 # from nptyping import NDArray
+import pylsl
 from pylsl import StreamInfo
 from attrs import define, field, Factory
 
 from emotiv_lsl.emotiv_base import EmotivBase
 from config import MOTION_SRATE, SRATE
+
+
+logger = logging.getLogger("emotiv_lsl")
 
 @define(slots=False)
 class EmotivEpocX(EmotivBase):
@@ -19,25 +23,41 @@ class EmotivEpocX(EmotivBase):
     
     
     def __attrs_post_init__(self):
-        self.cipher = AES.new(self.get_crypto_key(), AES.MODE_ECB)
+        if (self.cipher is None):           
+            crypto_key = self.get_crypto_key()
+            self.cipher = AES.new(crypto_key, AES.MODE_ECB)
+        else:
+            print(f'working cipher was provided on startup!')
+
         if self.is_reverse_engineer_mode:
             print('starting with reverse engineer mode!')
             # self.READ_SIZE = 64
-                           
+        self.init_EasyTimeSyncParsingMixin()
+        
 
     def get_hid_device(self):
+        import hid
         for device in hid.enumerate():
             if (device.get('manufacturer_string', '') == 'Emotiv') and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
                 return device
         raise Exception('Emotiv Epoc X not found')
 
     def get_crypto_key(self) -> bytearray:
-        serial = self.get_hid_device()['serial_number']
-        self.serial_number = serial
+        if (self.serial_number is None):
+            serial = self.get_hid_device()['serial_number']
+            self.serial_number = serial
+        else:
+            if isinstance(self.serial_number, bytearray):
+                ## serial is actually bytearray
+                return self.serial_number
+            else:
+                serial = self.serial_number
+
         sn = bytearray()
         for i in range(0, len(serial)):
             sn += bytearray([ord(serial[i])])
         return bytearray([sn[-1], sn[-2], sn[-4], sn[-4], sn[-2], sn[-1], sn[-2], sn[-4], sn[-1], sn[-4], sn[-3], sn[-2], sn[-1], sn[-2], sn[-2], sn[-3]])
+
 
     def get_lsl_source_id(self) -> str:
         source_id: str = self.get_crypto_key().hex() ## convert from bytearray into a hex string
@@ -50,7 +70,7 @@ class EmotivEpocX(EmotivBase):
         ch_names = ['AccX', 'AccY', 'AccZ', 'GyroX', 'GyroY', 'GyroZ']
         n_channels = len(ch_names)
         
-        info = StreamInfo('Epoc X Motion', type='SIGNAL', channel_count=n_channels, nominal_srate=MOTION_SRATE, channel_format='float32', source_id=self.get_lsl_source_id()) ## Use the generic "SIGNAL" type to so that it works with the default `bsl_stream_viewer`
+        info = StreamInfo('Epoc X Motion', type='SIGNAL', channel_count=n_channels, nominal_srate=MOTION_SRATE, channel_format=pylsl.cf_float32, source_id=self.get_lsl_source_id()) ## Use the generic "SIGNAL" type to so that it works with the default `bsl_stream_viewer`
         chns = info.desc().append_child("channels")
         
         # Add accelerometer channels
@@ -69,13 +89,16 @@ class EmotivEpocX(EmotivBase):
             ch.append_child_value("type", "GYRO")
             ch.append_child_value("scaling_factor", "1")
             
+        info = self.add_lsl_outlet_info_common(info)
+        
         return info
+
 
     def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
         ch_names = self.eeg_channel_names # ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
         n_channels = len(ch_names)
 
-        info = StreamInfo('Epoc X', type='EEG', channel_count=n_channels, nominal_srate=SRATE, channel_format='float32', source_id=self.get_lsl_source_id())
+        info = StreamInfo('Epoc X', type='EEG', channel_count=n_channels, nominal_srate=SRATE, channel_format=pylsl.cf_float32, source_id=self.get_lsl_source_id())
         chns = info.desc().append_child("channels")
         for label in ch_names:
             ch = chns.append_child("channel")
@@ -88,14 +111,17 @@ class EmotivEpocX(EmotivBase):
         cap.append_child_value("name", "easycap-M1")
         cap.append_child_value("labelscheme", "10-20")
 
+        info = self.add_lsl_outlet_info_common(info)
+        
         return info
+
 
     def get_lsl_outlet_electrode_quality_stream_info(self) -> StreamInfo:
         """ Create LSL stream for EEG sensor quality data. Only active if `self.enable_electrode_quality_stream` is True """
         ch_names = self.eeg_quality_channel_names # [f'q{a_name}' for a_name in ch_names] ## add the 'q' prefix, like ['qAF3', 'qF7', ...]
         n_channels = len(ch_names)
 
-        info = StreamInfo('Epoc X eQuality', type="Raw", channel_count=n_channels, nominal_srate=SRATE, channel_format='float32', source_id=self.get_lsl_source_id())
+        info = StreamInfo('Epoc X eQuality', type="Raw", channel_count=n_channels, nominal_srate=SRATE, channel_format=pylsl.cf_float32, source_id=self.get_lsl_source_id())
         chns = info.desc().append_child("channels")
         for label in ch_names:
             ch = chns.append_child("channel")
@@ -108,6 +134,8 @@ class EmotivEpocX(EmotivBase):
         cap.append_child_value("name", "easycap-M1")
         cap.append_child_value("labelscheme", "10-20")
 
+        info = self.add_lsl_outlet_info_common(info)
+        
         return info
     
     
@@ -122,6 +150,11 @@ class EmotivEpocX(EmotivBase):
                 return
 
         """
+        if (self.enable_debug_logging and self.is_reverse_engineer_mode):
+            logging.debug(f'decode_data(data: {data})') # find/replace with `.+ - emotiv_lsl - WARNING - (b['"].+['"])` and `$1`
+            # logger.warning(f'decode_data(data: {data})')
+            logger.warning(f'{data}')
+            
         data = [el ^ 0x55 for el in data]
         data = self.cipher.decrypt(bytearray(data))
         
