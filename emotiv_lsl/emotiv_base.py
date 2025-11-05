@@ -91,12 +91,12 @@ class EmotivBase(EasyTimeSyncParsingMixin):
     def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
         """Create LSL stream for EEG sensor data"""
         info = self.add_lsl_outlet_info_common(info=info)
-        pass
+        return info
 
     def get_lsl_outlet_motion_stream_info(self) -> StreamInfo:
         """Create LSL stream info for motion sensor data (accelerometer + gyroscope)"""
         info = self.add_lsl_outlet_info_common(info=info)
-        pass
+        return info
     
 
     def get_lsl_outlet_raw_debugging_stream_info(self) -> StreamInfo:
