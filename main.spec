@@ -2,12 +2,34 @@
 
 
 from PyInstaller.utils.hooks import collect_dynamic_libs
+import os
+
 pylsl_bins = collect_dynamic_libs("pylsl")
+
+# Try to bundle a system-provided liblsl into the app so pylsl can find it at runtime.
+# Priority: PYLSL_LIB env → common system library locations → none
+extra_lsl_bins = []
+env_lib = os.environ.get("PYLSL_LIB")
+if env_lib and os.path.exists(env_lib):
+    extra_lsl_bins.append((env_lib, "pylsl/lib"))
+else:
+    common_paths = [
+        "/usr/local/lib/liblsl.so",
+        "/usr/lib/liblsl.so",
+        "/usr/lib/x86_64-linux-gnu/liblsl.so",
+        "/usr/lib64/liblsl.so",
+    ]
+    for p in common_paths:
+        if os.path.exists(p):
+            extra_lsl_bins.append((p, "pylsl/lib"))
+            break
+
+binaries = pylsl_bins + extra_lsl_bins
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=pylsl_bins,
+    binaries=binaries,
     datas=[],
     hiddenimports=[],
     hookspath=[],
