@@ -34,7 +34,7 @@ dependencies = [
 
 [tool.uv.sources]
 bsl = { git = "https://github.com/CommanderPho/bsl.git" }
-phopylslhelper = { path = "../LSL_REPOS/LSL/PhoPyLSLhelper", editable = true }
+phopylslhelper = { git = "https://github.com/CommanderPho/phopylslhelper.git" }
 
 
 

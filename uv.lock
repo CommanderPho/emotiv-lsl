@@ -1225,7 +1225,7 @@ requires-dist = [
     { name = "mne", extras = ["hdf5"], specifier = ">=1.6.1" },
     { name = "mne-qt-browser", specifier = ">=0.6.1" },
     { name = "nptyping", specifier = ">=2.5.0" },
-    { name = "phopylslhelper", editable = "../LSL_REPOS/LSL/PhoPyLSLhelper" },
+    { name = "phopylslhelper", git = "https://github.com/CommanderPho/phopylslhelper.git" },
     { name = "plotly", specifier = ">=6.2.0" },
     { name = "pycryptodome", specifier = ">=3.23.0" },
     { name = "pyinstaller", specifier = ">=6.14.2" },
@@ -3858,17 +3858,11 @@ wheels = [
 [[package]]
 name = "phopylslhelper"
 version = "0.1.2"
-source = { editable = "../LSL_REPOS/LSL/PhoPyLSLhelper" }
+source = { git = "https://github.com/CommanderPho/phopylslhelper.git#c6d59e8d484fe4e379de3cecf66b54ba72f4a5ea" }
 dependencies = [
     { name = "pylsl", version = "1.16.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "pylsl", version = "1.17.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
     { name = "pytz" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pylsl", specifier = ">=1.16.2" },
-    { name = "pytz", specifier = ">=2025.2" },
 ]
 
 [[package]]

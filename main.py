@@ -1,7 +1,15 @@
 import logging
 import os
-# Add the directory containing your DLL
-os.add_dll_directory(r"C:\Users\pho\repos\EmotivEpoc\emotiv-lsl\hidapi-win\x64") 
+import sys
+import platform
+
+# Add the directory containing the HIDAPI DLL on Windows only
+if sys.platform == "win32":
+    arch_dir = "x64" if platform.architecture()[0] == "64bit" else "x86"
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    dll_dir = os.path.join(project_root, "hidapi-win", arch_dir)
+    if os.path.isdir(dll_dir):
+        os.add_dll_directory(dll_dir)
 
 from emotiv_lsl.emotiv_epoc_x import EmotivEpocX
 
