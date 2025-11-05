@@ -18,7 +18,7 @@ def main() -> None:
             '--windowed',  # Hide console window (for GUI apps)
             "--name=emotiv_lsl",
             "--icon=images/icons/emotiv_lsl_icon_design.ico",  # Optional: add an icon file
-            "--add-data=*.py;.",  # Include all Python files
+            # "--add-data=*.py;.",  # Include all Python files
             '--hidden-import=pylsl',
             '--hidden-import=mne',
             '--collect-all=mne',  # Include all MNE data files
@@ -29,7 +29,7 @@ def main() -> None:
             "--noconfirm",
             "--clean",
         ])
-
+        return
 
 
 if __name__ == "__main__":
