@@ -11,6 +11,22 @@ if sys.platform == "win32":
     if os.path.isdir(dll_dir):
         os.add_dll_directory(dll_dir)
 
+# Hint the loader about bundled hidapi on macOS when frozen
+if sys.platform == "darwin" and getattr(sys, 'frozen', False):
+    exe_dir = os.path.dirname(sys.executable)
+    # Prefer Frameworks inside the .app bundle
+    frameworks_dir = os.path.normpath(os.path.join(exe_dir, '..', 'Frameworks'))
+    candidates = [
+        frameworks_dir,
+        exe_dir,
+    ]
+    for candidate in candidates:
+        if os.path.isdir(candidate):
+            current = os.environ.get('DYLD_FALLBACK_LIBRARY_PATH', '')
+            paths = [candidate] + ([current] if current else [])
+            os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = ':'.join(paths)
+            break
+
 from emotiv_lsl.emotiv_epoc_x import EmotivEpocX
 
 if __name__ == "__main__":
