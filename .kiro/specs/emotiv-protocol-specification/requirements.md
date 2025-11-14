@@ -17,6 +17,10 @@ This document specifies the requirements for implementing a client that can succ
 - **Cipher**: AES-ECB encryption/decryption object initialized with the Crypto_Key
 - **Serial_Number**: A unique alphanumeric identifier string embedded in the headset's USB HID descriptor
 
+## Overview
+
+This requirements document provides a structured, testable specification for implementing an Emotiv Epoc headset client. For the complete technical protocol specification with implementation details, formulas, and pseudocode, see **protocol.md** in this directory.
+
 ## Requirements
 
 ### Requirement 1: USB HID Device Discovery
