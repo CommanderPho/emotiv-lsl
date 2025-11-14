@@ -12,6 +12,7 @@ This feature will wrap the existing Emotiv LSL data capture software in a robust
 - **Service_Manager**: Component responsible for starting, stopping, and monitoring the service
 - **Health_Monitor**: Component that tracks service status and data flow health
 - **Configuration_Manager**: Component that handles service configuration and settings
+- **Headless_Service**: A background service that operates without graphical user interface or visualization components
 
 ## Requirements
 
@@ -74,3 +75,15 @@ This feature will wrap the existing Emotiv LSL data capture software in a robust
 3. THE Configuration_Manager SHALL allow customization of retry intervals (1-300 seconds) and timeout values (5-120 seconds)
 4. THE Configuration_Manager SHALL enable or disable specific EEG_Data streams including raw EEG, motion sensors, and signal quality metrics
 5. WHERE configuration changes are made to non-critical settings, THE Configuration_Manager SHALL apply them within 5 seconds without requiring Emotiv_LSL_Service restart
+
+### Requirement 6
+
+**User Story:** As a system administrator, I want the Emotiv LSL service to run as a pure headless background service, so that it operates efficiently without unnecessary dependencies or resource overhead.
+
+#### Acceptance Criteria
+
+1. THE Emotiv_LSL_Service SHALL operate without any graphical user interface components
+2. THE Emotiv_LSL_Service SHALL NOT include visualization libraries including matplotlib, pyplot, or any plotting frameworks
+3. THE Emotiv_LSL_Service SHALL NOT include real-time data visualization or charting functionality
+4. THE Emotiv_LSL_Service SHALL NOT depend on GUI frameworks including Qt, Tkinter, or wxPython for core service functionality
+5. THE Emotiv_LSL_Service SHALL provide all monitoring and status information through command-line interface and log files only

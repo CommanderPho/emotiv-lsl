@@ -6,6 +6,10 @@ The Emotiv LSL Service is a robust cross-platform background service wrapper tha
 
 The design leverages the existing `EmotivBase` and `EmotivEpocX` classes while adding cross-platform service infrastructure around them to ensure reliable, continuous operation on all supported operating systems.
 
+**Architectural Principle: Headless Operation**
+
+The service is designed as a pure headless background service with no graphical user interface, visualization, or plotting capabilities. All monitoring, status reporting, and diagnostics are provided through command-line interfaces, log files, and LSL stream metadata. This design ensures minimal resource overhead, eliminates GUI framework dependencies, and enables reliable operation in server and embedded environments.
+
 ## Architecture
 
 ### High-Level Architecture
@@ -444,6 +448,17 @@ sudo launchctl load /Library/LaunchDaemons/com.emotiv.lsl.service.plist
 - `hidapi`: USB HID device communication
 - `numpy`: Data processing
 - `attrs`: Data classes and validation
+
+### Explicitly Excluded Dependencies
+
+The following dependencies are explicitly excluded from the service to maintain headless operation:
+
+- **Visualization Libraries**: `matplotlib`, `pyplot`, `seaborn`, `plotly`
+- **GUI Frameworks**: `PyQt5`, `PyQt6`, `PySide`, `Tkinter`, `wxPython`
+- **Interactive Plotting**: `bokeh`, `dash`, `streamlit`
+- **Jupyter/Notebook**: `ipykernel`, `jupyter`, `notebook`
+
+Note: While `matplotlib` may be present as a transitive dependency of `mne` (used in examples), the service code must not import or use any visualization functionality.
 
 ## Deployment Considerations
 

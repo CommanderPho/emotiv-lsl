@@ -132,3 +132,10 @@
   - Create Linux udev rules for USB device access (extend existing udev_rules/)
   - Handle macOS system extension approval and security settings
   - _Requirements: Hardware access and security compliance_
+
+- [ ] 10. Ensure headless service architecture
+  - Verify no visualization or GUI code in service modules
+  - Remove any matplotlib, pyplot, or plotting imports from service code
+  - Ensure service dependencies exclude GUI frameworks
+  - Validate service runs without display/X11 requirements
+  - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
