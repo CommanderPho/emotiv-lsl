@@ -39,8 +39,8 @@ if __name__ == "__main__":
 Examples:
   python main.py                           # Auto-detect connection (BLE first, then USB)
   python main.py --connection usb          # Force USB HID connection
-  python main.py --connection ble          # Force BLE connection
-  python main.py --connection ble --ble-address AA:BB:CC:DD:EE:FF  # Connect to specific device
+  python main.py --connection ble --serial SN-XXXXX-XXXXX-XXXXX  # Force BLE connection
+  python main.py --connection ble --serial SN-XXXXX-XXXXX-XXXXX --ble-address AA:BB:CC:DD:EE:FF  # Connect to specific BLE device
         """
     )
     
@@ -57,6 +57,13 @@ Examples:
         type=str,
         default=None,
         help='MAC address of specific BLE device to connect to (e.g., AA:BB:CC:DD:EE:FF). Only used with --connection ble'
+    )
+    
+    parser.add_argument(
+        '--serial',
+        type=str,
+        default=None,
+        help='Device serial number (required for BLE connections). The serial number is printed on the USB dongle or device packaging.'
     )
     
     args = parser.parse_args()
@@ -85,8 +92,15 @@ Examples:
     if args.ble_address:
         connection_config['device_address'] = args.ble_address
     
+    # Validate serial number for BLE connections
+    if args.connection == 'ble' and not args.serial:
+        logger.error("BLE connections require a serial number. Please provide --serial YOUR_SERIAL_NUMBER")
+        logger.error("The serial number is printed on the USB dongle or device packaging.")
+        sys.exit(1)
+    
     # Create EmotivEpocX instance with connection parameters
     emotiv_epoc_x = EmotivEpocX(
+        serial_number=args.serial,
         connection_type=args.connection,
         connection_config=connection_config
     )
