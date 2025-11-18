@@ -35,4 +35,5 @@ six==1.17.0
 tqdm==4.67.1
 urllib3==2.2.3
 zipp==3.20.2
+bleak>=0.21.0
 pywin32==306; sys_platform == "win32"

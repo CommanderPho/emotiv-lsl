@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import platform
+import argparse
 
 # Add the directory containing the HIDAPI DLL on Windows only
 if sys.platform == "win32":
@@ -30,34 +31,68 @@ if sys.platform == "darwin" and getattr(sys, 'frozen', False):
 from emotiv_lsl.emotiv_epoc_x import EmotivEpocX
 
 if __name__ == "__main__":
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description='Emotiv LSL Server - Stream EEG data from Emotiv EPOC X headset',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python main.py                           # Auto-detect connection (BLE first, then USB)
+  python main.py --connection usb          # Force USB HID connection
+  python main.py --connection ble          # Force BLE connection
+  python main.py --connection ble --ble-address AA:BB:CC:DD:EE:FF  # Connect to specific device
+        """
+    )
+    
+    parser.add_argument(
+        '--connection',
+        type=str,
+        choices=['usb', 'ble', 'auto'],
+        default='auto',
+        help='Connection type: usb (USB HID dongle), ble (Bluetooth LE), or auto (try BLE first, fallback to USB). Default: auto'
+    )
+    
+    parser.add_argument(
+        '--ble-address',
+        type=str,
+        default=None,
+        help='MAC address of specific BLE device to connect to (e.g., AA:BB:CC:DD:EE:FF). Only used with --connection ble'
+    )
+    
+    args = parser.parse_args()
+    
     # Configure logging for debugging data packets
     logging.basicConfig(
         level=logging.DEBUG,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
-    # logger = logging.getLogger("emotiv_lsl")
-    # logger.setLevel(logging.DEBUG)
-
-    # file_handler = logging.FileHandler("logs_and_notes/logs/decode_tracing.log")
-    # file_handler.setLevel(logging.WARN)
-
-    # console_handler = logging.StreamHandler()
-    # console_handler.setLevel(logging.INFO)
-
-    # formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    # file_handler.setFormatter(formatter)
-    # console_handler.setFormatter(formatter)
-
-    # logger.addHandler(file_handler)
-    # logger.addHandler(console_handler)
-
-    # logger.info("info → console only")
-    # logger.error("error → console + file")
-
-    # logging.basicConfig(filename="logs_and_notes/logs/decode_tracing.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-    emotiv_epoc_x = EmotivEpocX()
+    logger = logging.getLogger("emotiv_lsl")
+    
+    # Display startup information
+    logger.info("=" * 60)
+    logger.info("Emotiv LSL Server Starting")
+    logger.info("=" * 60)
+    logger.info(f"Connection mode: {args.connection}")
+    if args.connection == 'ble' and args.ble_address:
+        logger.info(f"Target BLE device: {args.ble_address}")
+    elif args.connection == 'auto':
+        logger.info("Will attempt BLE connection first, then fallback to USB if unavailable")
+    logger.info("=" * 60)
+    
+    # Prepare connection configuration
+    connection_config = {}
+    if args.ble_address:
+        connection_config['device_address'] = args.ble_address
+    
+    # Create EmotivEpocX instance with connection parameters
+    emotiv_epoc_x = EmotivEpocX(
+        connection_type=args.connection,
+        connection_config=connection_config
+    )
+    
     crypto_key = emotiv_epoc_x.get_crypto_key()
-    print(f'crypto_key: {crypto_key}')
+    logger.info(f'Crypto key: {crypto_key.hex()}')
+    
+    # Start the main loop
     emotiv_epoc_x.main_loop()

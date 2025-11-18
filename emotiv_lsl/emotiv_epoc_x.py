@@ -34,8 +34,27 @@ class EmotivEpocX(EmotivBase):
             # self.READ_SIZE = 64
         self.init_EasyTimeSyncParsingMixin()
         
+        # Note: Direct HID device access removed - connection is now handled
+        # by the connection abstraction layer in EmotivBase.initialize_connection()
+        
 
     def get_hid_device(self):
+        """
+        DEPRECATED: This method is deprecated in favor of the connection abstraction layer.
+        
+        For USB connections, use USBHIDConnection class instead.
+        For BLE connections, use BLEConnection class instead.
+        
+        This method is kept for backward compatibility with code that directly
+        accesses HID devices, but new code should use the connection abstraction
+        via EmotivBase.initialize_connection().
+        
+        Returns:
+            dict: HID device information
+            
+        Raises:
+            Exception: If Emotiv Epoc X device is not found
+        """
         import hid
         for device in hid.enumerate():
             if (device.get('manufacturer_string', '') == 'Emotiv') and ((device.get('usage', 0) == 2 or device.get('usage', 0) == 0 and device.get('interface_number', 0) == 1)):
@@ -43,12 +62,41 @@ class EmotivEpocX(EmotivBase):
         raise Exception('Emotiv Epoc X not found')
 
     def get_crypto_key(self) -> bytearray:
+        """
+        Generate AES encryption key from device serial number.
+        
+        The serial number can be provided in three ways:
+        1. Directly as a bytearray (crypto key)
+        2. As a string serial number
+        3. Retrieved from the connection object (if available)
+        4. Retrieved from HID device (legacy fallback)
+        
+        Returns:
+            bytearray: 16-byte AES encryption key derived from serial number
+        """
         if (self.serial_number is None):
-            serial = self.get_hid_device()['serial_number']
-            self.serial_number = serial
+            # Try to get serial from connection object first
+            if self.connection is not None:
+                try:
+                    device_info = self.connection.get_device_info()
+                    serial = device_info.get('serial_number', None)
+                    if serial:
+                        self.serial_number = serial
+                    else:
+                        # Fall back to legacy HID device access
+                        serial = self.get_hid_device()['serial_number']
+                        self.serial_number = serial
+                except Exception:
+                    # Fall back to legacy HID device access
+                    serial = self.get_hid_device()['serial_number']
+                    self.serial_number = serial
+            else:
+                # Fall back to legacy HID device access
+                serial = self.get_hid_device()['serial_number']
+                self.serial_number = serial
         else:
             if isinstance(self.serial_number, bytearray):
-                ## serial is actually bytearray
+                ## serial is actually bytearray (crypto key)
                 return self.serial_number
             else:
                 serial = self.serial_number
@@ -66,7 +114,12 @@ class EmotivEpocX(EmotivBase):
     
 
     def get_lsl_outlet_motion_stream_info(self) -> StreamInfo:
-        """Create LSL stream info for motion sensor data (accelerometer + gyroscope)"""
+        """
+        Create LSL stream info for motion sensor data (accelerometer + gyroscope).
+        
+        This method produces identical stream metadata for both USB and BLE connections,
+        ensuring compatibility with existing analysis tools regardless of connection type.
+        """
         ch_names = ['AccX', 'AccY', 'AccZ', 'GyroX', 'GyroY', 'GyroZ']
         n_channels = len(ch_names)
         
@@ -95,6 +148,12 @@ class EmotivEpocX(EmotivBase):
 
 
     def get_lsl_outlet_eeg_stream_info(self) -> StreamInfo:
+        """
+        Create LSL stream info for EEG data.
+        
+        This method produces identical stream metadata for both USB and BLE connections,
+        ensuring compatibility with existing analysis tools regardless of connection type.
+        """
         ch_names = self.eeg_channel_names # ['AF3', 'F7', 'F3', 'FC5', 'T7', 'P7', 'O1', 'O2', 'P8', 'T8', 'FC6', 'F4', 'F8', 'AF4']
         n_channels = len(ch_names)
 
@@ -117,7 +176,14 @@ class EmotivEpocX(EmotivBase):
 
 
     def get_lsl_outlet_electrode_quality_stream_info(self) -> StreamInfo:
-        """ Create LSL stream for EEG sensor quality data. Only active if `self.enable_electrode_quality_stream` is True """
+        """
+        Create LSL stream for EEG sensor quality data.
+        
+        Only active if `self.enable_electrode_quality_stream` is True.
+        
+        This method produces identical stream metadata for both USB and BLE connections,
+        ensuring compatibility with existing analysis tools regardless of connection type.
+        """
         ch_names = self.eeg_quality_channel_names # [f'q{a_name}' for a_name in ch_names] ## add the 'q' prefix, like ['qAF3', 'qF7', ...]
         n_channels = len(ch_names)
 
@@ -143,6 +209,25 @@ class EmotivEpocX(EmotivBase):
 
     def decode_data(self, data) -> Tuple[List, Optional[List]]:
         """ 
+        Decode raw data packet from Emotiv EPOC X headset.
+        
+        This method works identically for both USB HID and BLE connections,
+        as both provide 32-byte encrypted packets with the same format.
+        
+        Process:
+        1. XOR each byte with 0x55
+        2. Decrypt with AES-ECB using device-specific key
+        3. Parse EEG data (14 channels) or motion data (6 channels)
+        4. Extract electrode quality values if enabled
+        
+        Args:
+            data: Raw 32-byte packet from device
+            
+        Returns:
+            Tuple of (decoded_data, quality_data):
+                - decoded_data: List of 14 EEG values or 6 motion values
+                - quality_data: List of 14 quality values or None
+        
         From `CyKit/Examples/example_epoc_plus.py`
             join_data = ''.join(map(chr, data[1:]))
             data = self.cipher.decrypt(bytes(join_data,'latin-1')[0:32])
@@ -243,6 +328,18 @@ class EmotivEpocX(EmotivBase):
         return [0.0] * 6  # Return zeros if not enough data
 
     def validate_data(self, data) -> bool:
+        """
+        Validate that data packet has correct length.
+        
+        This validation works identically for both USB HID and BLE connections,
+        as both provide packets of the same size (32 bytes in normal mode).
+        
+        Args:
+            data: Raw packet data
+            
+        Returns:
+            bool: True if packet length is valid, False otherwise
+        """
         if self.is_reverse_engineer_mode:
             return (len(data) == self.READ_SIZE)
         else:

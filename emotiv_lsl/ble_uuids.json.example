@@ -1,0 +1,46 @@
+{
+  "device_address": "AA:BB:CC:DD:EE:FF",
+  "device_name": "EPOC X-XXXX",
+  "services": [
+    {
+      "uuid": "00001800-0000-1000-8000-00805f9b34fb",
+      "description": "Generic Access Profile",
+      "characteristics": [
+        {
+          "uuid": "00002a00-0000-1000-8000-00805f9b34fb",
+          "description": "Device Name",
+          "properties": ["read"],
+          "sample_value": "45504f43582d58585858"
+        }
+      ]
+    },
+    {
+      "uuid": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+      "description": "Emotiv Data Service",
+      "characteristics": [
+        {
+          "uuid": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+          "description": "EEG Data",
+          "properties": ["notify"],
+          "descriptors": [
+            {
+              "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+              "description": "Client Characteristic Configuration"
+            }
+          ]
+        },
+        {
+          "uuid": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+          "description": "Motion Data",
+          "properties": ["notify"],
+          "descriptors": [
+            {
+              "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+              "description": "Client Characteristic Configuration"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

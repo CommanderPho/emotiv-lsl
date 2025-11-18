@@ -2,15 +2,16 @@
 
 # Emotiv-LSL
 ## Description
-LSL (Lab Streaming Layer) server for the Emotiv EPOC X headset, based on the original [CyKit] and [emotiv] (https://github.com/vtr0n/emotiv-lsl) project. This project allows acquiring, reading, and exporting raw data from the headset.
+LSL (Lab Streaming Layer) server for the Emotiv EPOC X headset, based on the original [CyKit] and [emotiv] (https://github.com/vtr0n/emotiv-lsl) project. This project allows acquiring, reading, and exporting raw data from the headset via **USB dongle** or **Bluetooth Low Energy (BLE)**.
 
 ---
 
 ## Prerequisites
 ### Dependencies
-- **Python 3.8**: Create a dedicated conda environment.
+- **Python 3.8+**: Create a dedicated conda environment or use uv.
 - **Liblsl**: Install the LSL library for Python.
 - **Additional packages**: Use `requirements.txt` to install necessary dependencies.
+- **BLE Support**: For Bluetooth connectivity, `bleak>=0.21.0` is required (automatically installed).
 
 ---
 
@@ -30,21 +31,247 @@ LSL (Lab Streaming Layer) server for the Emotiv EPOC X headset, based on the ori
    pip install -r requirements.txt
    ```
 
+### Platform-Specific BLE Requirements
+
+#### Windows
+- No additional setup required for BLE
+- Native Windows BLE stack is used automatically
+
+#### macOS
+- No additional setup required for BLE
+- Uses Core Bluetooth framework via bleak
+- For packaged apps, Bluetooth permissions may need to be configured in Info.plist
+
+#### Linux
+- Requires BlueZ 5.43 or higher
+- Install BlueZ if not already present:
+  ```bash
+  sudo apt-get install bluez
+  ```
+- Verify BlueZ version:
+  ```bash
+  bluetoothctl --version
+  ```
+- User may need to be added to the `bluetooth` group:
+  ```bash
+  sudo usermod -a -G bluetooth $USER
+  ```
+- Log out and back in for group changes to take effect
+
 ---
 
 ## Usage
-1. **Connect the dongle and turn on the headset**:
+
+### USB Connection (Default)
+1. **Connect the USB dongle and turn on the headset**:
    - Make sure the indicator lights signal an active connection.
 2. **Launch the LSL server**:
    ```bash
    python main.py
    ```
-3. **Visualize the signal**:
-   - In the conda environment, install and launch `bsl_stream_viewer`:
-     ```bash
-     pip install bsl
-     bsl_stream_viewer
-     ```
+   Or explicitly specify USB mode:
+   ```bash
+   python main.py --connection usb
+   ```
+
+### Bluetooth (BLE) Connection
+1. **Turn on the headset** and ensure Bluetooth is enabled on your computer
+2. **Launch the LSL server in BLE mode**:
+   ```bash
+   python main.py --connection ble
+   ```
+3. **Connect to a specific device by MAC address** (optional):
+   ```bash
+   python main.py --connection ble --ble-address AA:BB:CC:DD:EE:FF
+   ```
+
+### Auto Connection Mode
+The server can automatically try BLE first, then fall back to USB if BLE is unavailable:
+```bash
+python main.py --connection auto
+```
+
+### Visualize the Signal
+In the conda environment, install and launch `bsl_stream_viewer`:
+```bash
+pip install bsl
+bsl_stream_viewer
+```
+
+The LSL streams are identical regardless of connection type (USB or BLE):
+- **"Epoc X"** - EEG data (14 channels, 128Hz)
+- **"Epoc X Motion"** - IMU data (6 channels, 16Hz)
+- **"Epoc X eQuality"** - Electrode quality (14 channels, 128Hz)
+
+---
+
+## Troubleshooting BLE Connection
+
+### Device Not Found
+**Problem**: "No Emotiv EPOC X headsets found via Bluetooth"
+
+**Solutions**:
+- Ensure the headset is powered on and charged
+- Verify Bluetooth is enabled on your computer
+- Make sure the headset is in pairing mode (check manufacturer instructions)
+- Try moving the headset closer to your computer
+- On Linux, check that BlueZ is installed and running:
+  ```bash
+  sudo systemctl status bluetooth
+  ```
+
+### Connection Timeout
+**Problem**: Connection attempt times out after 10 seconds
+
+**Solutions**:
+- Ensure no other devices are connected to the headset
+- Restart the headset by turning it off and on
+- Restart Bluetooth on your computer
+- On Linux, restart the Bluetooth service:
+  ```bash
+  sudo systemctl restart bluetooth
+  ```
+
+### Weak Signal Strength
+**Problem**: Warning messages about RSSI below -80 dBm
+
+**Solutions**:
+- Move the headset closer to your computer
+- Remove obstacles between the headset and computer
+- Ensure no other 2.4GHz devices are causing interference
+- Consider using USB connection for more stable signal
+
+### Connection Drops During Recording
+**Problem**: BLE connection disconnects during data acquisition
+
+**Solutions**:
+- Check battery level on the headset
+- Reduce distance between headset and computer
+- Close other Bluetooth applications that may interfere
+- The system will automatically attempt reconnection (up to 3 times with 5-second delays)
+- If reconnection fails repeatedly, switch to USB mode
+
+### Platform-Specific Issues
+
+#### Linux: Permission Denied
+**Problem**: Cannot access Bluetooth device
+
+**Solution**:
+```bash
+sudo usermod -a -G bluetooth $USER
+# Log out and back in
+```
+
+#### macOS: Bluetooth Permission Denied
+**Problem**: Application cannot access Bluetooth
+
+**Solution**:
+- Go to System Preferences → Security & Privacy → Bluetooth
+- Ensure the terminal or application has Bluetooth access permission
+
+#### Windows: BLE Not Available
+**Problem**: "BLE not supported on this platform"
+
+**Solution**:
+- Ensure Windows 10 version 1803 or later
+- Check that Bluetooth drivers are installed and up to date
+- Verify Bluetooth is enabled in Windows Settings
+
+### Discovering BLE Service UUIDs
+If you need to discover the GATT service and characteristic UUIDs for your specific Emotiv headset model:
+
+```bash
+python scripts/discover_ble_uuids.py
+```
+
+This utility will:
+1. Scan for Emotiv devices
+2. Connect to the discovered device
+3. Enumerate all GATT services and characteristics
+4. Display UUIDs and their properties (read, write, notify)
+5. Save the discovered UUIDs to `emotiv_lsl/ble_uuids.json`
+
+You can also specify a device by MAC address:
+```bash
+python scripts/discover_ble_uuids.py --address AA:BB:CC:DD:EE:FF
+```
+
+### Performance Optimization
+For best BLE performance:
+- Use the `--connection ble` flag explicitly rather than `auto` mode
+- Ensure minimal distance between headset and computer
+- Close unnecessary Bluetooth applications
+- Monitor packet rate in logs - should maintain ~128 Hz for EEG data
+- If latency exceeds 50ms consistently, consider USB connection
+
+---
+
+## BLE Technical Details
+
+### Supported Features
+- Cross-platform BLE support via bleak library
+- Automatic device discovery and connection
+- GATT characteristic subscriptions for data streaming
+- Packet buffering with overflow protection (100 packet queue)
+- Automatic reconnection on connection loss (3 attempts)
+- RSSI monitoring for signal quality
+- Low-latency connection parameters (7.5ms minimum interval)
+
+### Known Limitations
+- BLE UUIDs for Emotiv EPOC X are device-specific and must be discovered
+- Some platforms may not support RSSI reading during active connection
+- BLE may have slightly higher latency than USB (typically <10ms additional)
+- Maximum range is limited by Bluetooth signal strength
+
+### Data Compatibility
+All data streams (EEG, motion, quality) are identical between USB and BLE connections:
+- Same packet structure and encryption
+- Same decoding pipeline
+- Same LSL stream metadata
+- Analysis tools work without modification
+
+### BLE Service and Characteristic UUIDs
+
+The Emotiv EPOC X headset uses specific GATT service and characteristic UUIDs for BLE communication. These UUIDs are device-specific and must be discovered for your particular headset model.
+
+**To discover UUIDs for your device:**
+1. Run the discovery utility:
+   ```bash
+   python scripts/discover_ble_uuids.py
+   ```
+2. The script will generate `emotiv_lsl/ble_uuids.json` with all discovered services and characteristics
+3. Review the output to identify:
+   - **EEG Data Characteristic**: High-frequency notifications (~128 Hz)
+   - **Motion Data Characteristic**: Lower-frequency notifications (~16 Hz)
+   - **Device Control Characteristics**: Configuration and status
+
+**Example UUID structure:**
+```json
+{
+  "device_address": "AA:BB:CC:DD:EE:FF",
+  "device_name": "EPOC X-1234",
+  "services": [
+    {
+      "uuid": "service-uuid",
+      "characteristics": [
+        {
+          "uuid": "eeg-characteristic-uuid",
+          "properties": ["notify"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Note**: The current implementation uses placeholder UUIDs marked as "TBD" in `emotiv_lsl/ble_connection.py`. After discovering your device's UUIDs, update these constants:
+```python
+EMOTIV_SERVICE_UUID = "your-discovered-service-uuid"
+EEG_CHARACTERISTIC_UUID = "your-discovered-eeg-uuid"
+MOTION_CHARACTERISTIC_UUID = "your-discovered-motion-uuid"
+```
+
+For detailed instructions, see `scripts/README_discover_ble_uuids.md`.
 
 ---
 

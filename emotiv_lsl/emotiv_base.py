@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple, Optional, Callable, Union, Any
 from datetime import datetime, timedelta
 # import hid
+import asyncio
 import logging
 from Crypto.Cipher import AES
 import numpy as np
@@ -19,6 +20,11 @@ class EmotivBase(EasyTimeSyncParsingMixin):
     delimiter: str = field(default=',')
     cipher: Any = field(default=None)
     KeyModel: int = field(default = 1)    
+    
+    # Connection abstraction fields
+    connection: Any = field(default=None)  # EmotivConnectionBase instance
+    connection_type: str = field(default='usb')  # 'usb', 'ble', or 'auto'
+    connection_config: dict = field(factory=dict)  # Connection-specific configuration
     
     has_motion_data: bool = field(default=False)
     enable_debug_logging: bool = field(default=False)
@@ -55,6 +61,87 @@ class EmotivBase(EasyTimeSyncParsingMixin):
     def __attrs_post_init__(self):
         self.init_EasyTimeSyncParsingMixin()
         
+
+    async def initialize_connection(self):
+        """
+        Initialize connection based on connection_type.
+        
+        Creates the appropriate connection instance (BLE or USB) based on the
+        connection_type field and establishes the connection.
+        
+        Supports three modes:
+        - 'ble': Create BLEConnection instance
+        - 'usb': Create USBHIDConnection instance  
+        - 'auto': Try BLE first, fall back to USB on failure
+        
+        Raises:
+            EmotivConnectionError: If connection fails for all attempted methods
+        """
+        from emotiv_lsl.connection_base import DeviceNotFoundError, EmotivConnectionError
+        from emotiv_lsl.ble_connection import BLEConnection
+        from emotiv_lsl.usb_connection import USBHIDConnection
+        
+        logger = logging.getLogger(f'emotiv.{self.device_name.replace(" ", "_").lower()}')
+        
+        if self.connection_type == 'ble':
+            logger.info("Initializing BLE connection...")
+            device_address = self.connection_config.get('device_address', None)
+            self.connection = BLEConnection(device_address=device_address)
+            await self.connection.connect()
+            device_info = self.connection.get_device_info()
+            logger.info(
+                f"BLE connection established: {device_info['device_name']} "
+                f"({device_info['device_id']})"
+            )
+            
+        elif self.connection_type == 'usb':
+            logger.info("Initializing USB HID connection...")
+            self.connection = USBHIDConnection()
+            await self.connection.connect()
+            device_info = self.connection.get_device_info()
+            logger.info(
+                f"USB connection established: {device_info['device_name']} "
+                f"({device_info['device_id']})"
+            )
+            
+        elif self.connection_type == 'auto':
+            logger.info("Auto-detecting connection type (trying BLE first, then USB)...")
+            
+            # Try BLE first
+            try:
+                device_address = self.connection_config.get('device_address', None)
+                self.connection = BLEConnection(device_address=device_address)
+                await self.connection.connect()
+                device_info = self.connection.get_device_info()
+                logger.info(
+                    f"BLE connection established: {device_info['device_name']} "
+                    f"({device_info['device_id']})"
+                )
+                return
+            except (DeviceNotFoundError, Exception) as e:
+                logger.info(f"BLE connection failed: {e}, trying USB...")
+                self.connection = None
+            
+            # Fall back to USB
+            try:
+                self.connection = USBHIDConnection()
+                await self.connection.connect()
+                device_info = self.connection.get_device_info()
+                logger.info(
+                    f"USB connection established: {device_info['device_name']} "
+                    f"({device_info['device_id']})"
+                )
+            except Exception as e:
+                logger.error(f"USB connection also failed: {e}")
+                raise EmotivConnectionError(
+                    "Failed to connect via both BLE and USB. "
+                    "Ensure device is powered on and accessible."
+                )
+        else:
+            raise ValueError(
+                f"Invalid connection_type: {self.connection_type}. "
+                "Must be 'usb', 'ble', or 'auto'"
+            )
 
     def get_crypto_key(self) -> bytearray:
         raise NotImplementedError('get_crypto_key method must be implemented in subclass')
@@ -172,9 +259,28 @@ class EmotivBase(EasyTimeSyncParsingMixin):
         
 
 
-    def main_loop(self):
-        import hid
-
+    async def main_loop_async(self):
+        """
+        Async version of main loop that uses connection abstraction.
+        
+        This method initializes the connection, creates LSL outlets, and continuously
+        reads packets from the device (USB or BLE) and pushes them to LSL streams.
+        Includes reconnection logic with retry attempts.
+        """
+        from emotiv_lsl.connection_base import EmotivConnectionError
+        from emotiv_lsl.connection_status import ConnectionStatus
+        from datetime import datetime
+        
+        logger = logging.getLogger(f'emotiv.{self.device_name.replace(" ", "_").lower()}')
+        
+        # Initialize connection
+        await self.initialize_connection()
+        
+        # Initialize connection status monitoring
+        connection_status = ConnectionStatus()
+        device_info = self.connection.get_device_info()
+        connection_status.update_from_device_info(device_info)
+        
         # Create EEG outlet
         eeg_outlet = None 
 
@@ -182,76 +288,189 @@ class EmotivBase(EasyTimeSyncParsingMixin):
         motion_outlet = None
         if self.has_motion_data:
             motion_outlet = StreamOutlet(self.get_lsl_outlet_motion_stream_info())
-            print(f'Setup motion outlet')
+            logger.info('Setup motion outlet')
             
-        # Create motion outlet if the device supports it
+        # Create raw packet outlet for reverse engineering
         raw_packet_outlet = None
         if self.is_reverse_engineer_mode:
             raw_packet_outlet = StreamOutlet(self.get_lsl_outlet_raw_debugging_stream_info())
-            print(f'Setup raw_packet_outlet (for reverse-engineering)')
+            logger.info('Setup raw_packet_outlet (for reverse-engineering)')
             
         eeg_quality_outlet = None
         
-        ## Get the device info
-        device = self.get_hid_device()
-        hid_device = hid.Device(path=device['path'])
-        logger = logging.getLogger(f'emotiv.{self.device_name.replace(" ", "_").lower()}')
-        
-        if self.is_reverse_engineer_mode:
-            logger.debug(f'hid_device: {hid_device}\n\twith path: {device["path"]}\n')
-        
         packet_count = 0
+        reconnect_attempts = 0
+        max_reconnect_attempts = 3
+        reconnect_delay = 5  # seconds
+        
+        # Packet rate monitoring
+        last_rate_check_time = datetime.now()
+        rate_check_interval = 5.0  # seconds
+        expected_eeg_rate = 128.0  # Hz
+        rate_warning_threshold = 0.9  # 90% of expected rate
         
         while True:
-            data = hid_device.read(self.READ_SIZE)
-            packet_count += 1
-            
-            if (self.is_reverse_engineer_mode and (raw_packet_outlet is not None)):
-                ## output the raw data
-                raw_packet_outlet.push_sample(data)
-
-
-            if self.validate_data(data):
-                if self.enable_debug_logging:
-                    logger.debug(f"Packet #{packet_count}: Valid data packet, length={len(data)}")
-
-                decoded, eeg_quality_data = self.decode_data(data)
+            try:
+                # Read packet from connection (USB or BLE)
+                data = await self.connection.read_packet()
                 
-                if (eeg_quality_data is not None) and len(eeg_quality_data) == 14:
-                    if self.is_reverse_engineer_mode:
-                        logger.debug(f'got eeg quality data: {eeg_quality_data}')
-                    if eeg_quality_outlet is None:
-                        eeg_quality_outlet = StreamOutlet(self.get_lsl_outlet_electrode_quality_stream_info())
-                        logger.debug(f'set up EEG Sensor Quality outlet!')
-                    eeg_quality_outlet.push_sample(eeg_quality_data)
-                        
-                # else:
-                # decoded = self.decode_data(data)
+                if data is None:
+                    # No packet available, continue
+                    continue
+                
+                packet_count += 1
+                packet_receive_time = datetime.now()
+                
+                # Debug logging for BLE packets
+                if self.enable_debug_logging:
+                    logger.debug(f"Packet #{packet_count}: Received {len(data)} bytes")
+                    logger.debug(f"Raw packet hex: {data.hex()}")
                     
-                if decoded is not None:
-                    # Check if this is motion data (based on number of channels)
-                    if len(decoded) == 6:
-                        if self.enable_debug_logging:
-                            logger.debug(f"Packet #{packet_count}: Motion data decoded, {len(decoded)} channels")
-                        if not self.has_motion_data:
-                            self.has_motion_data = True
-                            logger.debug(f'got first motion data!')
+                    # Log BLE notification metadata if available
+                    if hasattr(self.connection, '_last_sender') and self.connection._last_sender:
+                        logger.debug(f"BLE notification from characteristic: {self.connection._last_sender}")
+                
+                if self.is_reverse_engineer_mode and raw_packet_outlet is not None:
+                    # Output the raw data
+                    raw_packet_outlet.push_sample(data)
 
-                        if motion_outlet is None:
-                            motion_outlet = StreamOutlet(self.get_lsl_outlet_motion_stream_info())
-                            logger.debug(f'set up motion outlet!')
-                        motion_outlet.push_sample(decoded)
+                if self.validate_data(data):
+                    if self.enable_debug_logging:
+                        logger.debug(f"Packet #{packet_count}: Valid data packet, length={len(data)}")
+                    
+                    # Record successful packet for rate monitoring
+                    connection_status.record_packet()
 
-                    elif len(decoded) == 14:  # EEG data has 14 channels
-                        if self.enable_debug_logging:
-                            logger.debug(f"Packet #{packet_count}: EEG data decoded, {len(decoded)} channels")
-                        if eeg_outlet is None:
-                            eeg_outlet = StreamOutlet(self.get_lsl_outlet_eeg_stream_info())
-                            logger.debug(f'set up EEG outlet!')                                                        
-                        eeg_outlet.push_sample(decoded)
+                    decoded, eeg_quality_data = self.decode_data(data)
+                    
+                    if (eeg_quality_data is not None) and len(eeg_quality_data) == 14:
+                        if self.is_reverse_engineer_mode:
+                            logger.debug(f'got eeg quality data: {eeg_quality_data}')
+                        if eeg_quality_outlet is None:
+                            eeg_quality_outlet = StreamOutlet(self.get_lsl_outlet_electrode_quality_stream_info())
+                            logger.debug('set up EEG Sensor Quality outlet!')
+                        eeg_quality_outlet.push_sample(eeg_quality_data)
+                        
+                    if decoded is not None:
+                        # Check if this is motion data (based on number of channels)
+                        if len(decoded) == 6:
+                            if self.enable_debug_logging:
+                                logger.debug(f"Packet #{packet_count}: Motion data decoded, {len(decoded)} channels")
+                            if not self.has_motion_data:
+                                self.has_motion_data = True
+                                logger.debug('got first motion data!')
+
+                            if motion_outlet is None:
+                                motion_outlet = StreamOutlet(self.get_lsl_outlet_motion_stream_info())
+                                logger.debug('set up motion outlet!')
+                            motion_outlet.push_sample(decoded)
+                            
+                            # Measure latency for BLE connections
+                            if self.enable_debug_logging and hasattr(self.connection, '_last_notification_time'):
+                                if self.connection._last_notification_time:
+                                    latency_ms = (datetime.now() - self.connection._last_notification_time).total_seconds() * 1000
+                                    logger.debug(f"Latency (notification to LSL push): {latency_ms:.2f} ms")
+                                    
+                                    if latency_ms > 50:
+                                        logger.warning(
+                                            f"High latency detected: {latency_ms:.2f} ms "
+                                            f"(threshold: 50 ms). Performance may be degraded."
+                                        )
+
+                        elif len(decoded) == 14:  # EEG data has 14 channels
+                            if self.enable_debug_logging:
+                                logger.debug(f"Packet #{packet_count}: EEG data decoded, {len(decoded)} channels")
+                            if eeg_outlet is None:
+                                eeg_outlet = StreamOutlet(self.get_lsl_outlet_eeg_stream_info())
+                                logger.debug('set up EEG outlet!')                                                        
+                            eeg_outlet.push_sample(decoded)
+                            
+                            # Measure latency for BLE connections
+                            if self.enable_debug_logging and hasattr(self.connection, '_last_notification_time'):
+                                if self.connection._last_notification_time:
+                                    latency_ms = (datetime.now() - self.connection._last_notification_time).total_seconds() * 1000
+                                    logger.debug(f"Latency (notification to LSL push): {latency_ms:.2f} ms")
+                                    
+                                    if latency_ms > 50:
+                                        logger.warning(
+                                            f"High latency detected: {latency_ms:.2f} ms "
+                                            f"(threshold: 50 ms). Performance may be degraded."
+                                        )
+                        else:
+                            logger.debug(f"Packet #{packet_count}: Unknown data type with {len(decoded)} channels")
                     else:
-                        logger.debug(f"Packet #{packet_count}: Unknown data type with {len(decoded)} channels")
+                        logger.debug(f"Packet #{packet_count}: self.decode_data(data) failed -- data packet (skipped)")
                 else:
-                    logger.debug(f"Packet #{packet_count}: self.decode_data(data) failed -- data packet (skipped)")
-            else:
-                logger.debug(f"Packet #{packet_count}: Invalid data packet, length={len(data)}")
+                    logger.debug(f"Packet #{packet_count}: Invalid data packet, length={len(data)}")
+                    # Record invalid packet as error
+                    connection_status.record_error()
+                
+                # Check packet rate periodically
+                current_time = datetime.now()
+                time_since_last_check = (current_time - last_rate_check_time).total_seconds()
+                
+                if time_since_last_check >= rate_check_interval:
+                    # Calculate current packet rate
+                    current_rate = connection_status.calculate_packet_rate(window_seconds=5.0)
+                    
+                    # Log warning if rate drops below threshold
+                    if current_rate > 0 and current_rate < (expected_eeg_rate * rate_warning_threshold):
+                        logger.warning(
+                            f"Packet rate below expected: {current_rate:.1f} Hz "
+                            f"(expected: {expected_eeg_rate:.1f} Hz, "
+                            f"threshold: {expected_eeg_rate * rate_warning_threshold:.1f} Hz)"
+                        )
+                    elif current_rate > 0:
+                        logger.debug(f"Packet rate: {current_rate:.1f} Hz")
+                    
+                    # Log error count if there are errors
+                    if connection_status.error_count > 0:
+                        logger.info(
+                            f"Connection status - Rate: {current_rate:.1f} Hz, "
+                            f"Errors: {connection_status.error_count}, "
+                            f"Total packets: {packet_count}"
+                        )
+                    
+                    last_rate_check_time = current_time
+                    
+            except (EmotivConnectionError, ConnectionError, Exception) as e:
+                logger.error(f"Connection error after {packet_count} packets: {e}")
+                reconnect_attempts += 1
+                
+                if reconnect_attempts >= max_reconnect_attempts:
+                    logger.error(
+                        f"Max reconnection attempts ({max_reconnect_attempts}) reached. "
+                        "Terminating gracefully."
+                    )
+                    break
+                
+                logger.info(
+                    f"Attempting reconnection {reconnect_attempts}/{max_reconnect_attempts} "
+                    f"in {reconnect_delay} seconds..."
+                )
+                await asyncio.sleep(reconnect_delay)
+                
+                try:
+                    # Disconnect and reconnect
+                    if self.connection:
+                        await self.connection.disconnect()
+                    await self.initialize_connection()
+                    logger.info("Reconnection successful")
+                    reconnect_attempts = 0  # Reset counter on successful reconnection
+                except Exception as reconnect_error:
+                    logger.error(f"Reconnection attempt failed: {reconnect_error}")
+        
+        # Clean up connection on exit
+        if self.connection:
+            await self.connection.disconnect()
+            logger.info("Connection closed")
+
+    def main_loop(self):
+        """
+        Synchronous wrapper for main_loop_async.
+        
+        This method maintains backward compatibility with existing code that
+        calls main_loop() synchronously. It runs the async main_loop_async()
+        using asyncio.run().
+        """
+        asyncio.run(self.main_loop_async())
