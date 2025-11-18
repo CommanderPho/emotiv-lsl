@@ -217,14 +217,3 @@ This requirements document provides structured, testable specifications for impl
 4. THE Client_Application SHALL support both Just Works and Passkey Entry pairing methods
 5. THE Client_Application SHALL verify that the connection is encrypted after pairing
 
-### Requirement 17: BLE Power Management
-
-**User Story:** As a client application, I want to be aware of BLE power characteristics, so that I can optimize battery life.
-
-#### Acceptance Criteria
-
-1. THE Documentation SHALL specify that BLE communication consumes less power than USB
-2. THE Documentation SHALL specify that notification intervals affect power consumption
-3. THE Documentation SHALL specify that connection interval parameters can be negotiated
-4. THE Client_Application SHALL support configurable connection parameters for power optimization
-5. THE Client_Application SHALL document recommended connection parameters for different use cases
