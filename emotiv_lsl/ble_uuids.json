@@ -1,0 +1,213 @@
+{
+  "device_address": "C5:53:1B:AD:23:BD",
+  "services": [
+    {
+      "uuid": "00001800-0000-1000-8000-00805f9b34fb",
+      "description": "Generic Access Profile",
+      "characteristics": [
+        {
+          "uuid": "00002a00-0000-1000-8000-00805f9b34fb",
+          "description": "Device Name",
+          "properties": [
+            "write",
+            "read"
+          ],
+          "sample_value": "45504f43582028453530323032453929"
+        },
+        {
+          "uuid": "00002a01-0000-1000-8000-00805f9b34fb",
+          "description": "Appearance",
+          "properties": [
+            "read"
+          ],
+          "sample_value": "c003"
+        },
+        {
+          "uuid": "00002a04-0000-1000-8000-00805f9b34fb",
+          "description": "Peripheral Preferred Connection Parameters",
+          "properties": [
+            "read"
+          ],
+          "sample_value": "0600060000009001"
+        },
+        {
+          "uuid": "00002aa6-0000-1000-8000-00805f9b34fb",
+          "description": "Central Address Resolution",
+          "properties": [
+            "read"
+          ],
+          "sample_value": "01"
+        }
+      ]
+    },
+    {
+      "uuid": "00001801-0000-1000-8000-00805f9b34fb",
+      "description": "Generic Attribute Profile",
+      "characteristics": [
+        {
+          "uuid": "00002a05-0000-1000-8000-00805f9b34fb",
+          "description": "Service Changed",
+          "properties": [
+            "indicate"
+          ],
+          "descriptors": [
+            {
+              "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+              "description": "Client Characteristic Configuration"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "uuid": "0000fe59-0000-1000-8000-00805f9b34fb",
+      "description": "Nordic Semiconductor ASA",
+      "characteristics": [
+        {
+          "uuid": "8ec90003-f315-4f60-9fb8-838830daea50",
+          "description": "Buttonless DFU",
+          "properties": [
+            "indicate",
+            "write"
+          ],
+          "descriptors": [
+            {
+              "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+              "description": "Client Characteristic Configuration"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "uuid": "81072f40-9f3d-11e3-a9dc-0002a5d5c51b",
+      "description": "Unknown",
+      "characteristics": [
+        {
+          "uuid": "81072f41-9f3d-11e3-a9dc-0002a5d5c51b",
+          "description": "Unknown",
+          "properties": [
+            "notify"
+          ],
+          "descriptors": [
+            {
+              "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+              "description": "Client Characteristic Configuration"
+            }
+          ]
+        },
+        {
+          "uuid": "81072f42-9f3d-11e3-a9dc-0002a5d5c51b",
+          "description": "Unknown",
+          "properties": [
+            "notify"
+          ],
+          "descriptors": [
+            {
+              "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+              "description": "Client Characteristic Configuration"
+            }
+          ]
+        },
+        {
+          "uuid": "81072f43-9f3d-11e3-a9dc-0002a5d5c51b",
+          "description": "Unknown",
+          "properties": [
+            "write",
+            "notify"
+          ],
+          "descriptors": [
+            {
+              "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+              "description": "Client Characteristic Configuration"
+            }
+          ]
+        },
+        {
+          "uuid": "81072f44-9f3d-11e3-a9dc-0002a5d5c51b",
+          "description": "Unknown",
+          "properties": [
+            "read"
+          ],
+          "sample_value": "018000102010"
+        }
+      ]
+    },
+    {
+      "uuid": "0000180f-0000-1000-8000-00805f9b34fb",
+      "description": "Battery Service",
+      "characteristics": [
+        {
+          "uuid": "00002a19-0000-1000-8000-00805f9b34fb",
+          "description": "Battery Level",
+          "properties": [
+            "notify",
+            "read"
+          ],
+          "sample_value": "64",
+          "descriptors": [
+            {
+              "uuid": "00002902-0000-1000-8000-00805f9b34fb",
+              "description": "Client Characteristic Configuration"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "uuid": "0000180a-0000-1000-8000-00805f9b34fb",
+      "description": "Device Information",
+      "characteristics": [
+        {
+          "uuid": "00002a29-0000-1000-8000-00805f9b34fb",
+          "description": "Manufacturer Name String",
+          "properties": [
+            "read"
+          ],
+          "sample_value": "456d6f746976"
+        },
+        {
+          "uuid": "00002a24-0000-1000-8000-00805f9b34fb",
+          "description": "Model Number String",
+          "properties": [
+            "read"
+          ],
+          "sample_value": "41756720323520323032322031373a32363a3338000000000000000000000000"
+        },
+        {
+          "uuid": "00002a25-0000-1000-8000-00805f9b34fb",
+          "description": "Serial Number String",
+          "properties": [
+            "read"
+          ],
+          "sample_value": "e50202e92b"
+        },
+        {
+          "uuid": "00002a27-0000-1000-8000-00805f9b34fb",
+          "description": "Hardware Revision String",
+          "properties": [
+            "read"
+          ],
+          "sample_value": "01"
+        },
+        {
+          "uuid": "00002a26-0000-1000-8000-00805f9b34fb",
+          "description": "Firmware Revision String",
+          "properties": [
+            "read"
+          ],
+          "sample_value": "0720"
+        },
+        {
+          "uuid": "00002a28-0000-1000-8000-00805f9b34fb",
+          "description": "Software Revision String",
+          "properties": [
+            "read"
+          ],
+          "sample_value": "0720"
+        }
+      ]
+    }
+  ],
+  "device_name": "EPOCX (E50202E9)"
+}

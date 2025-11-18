@@ -91,8 +91,8 @@ Examples:
         connection_config=connection_config
     )
     
-    crypto_key = emotiv_epoc_x.get_crypto_key()
-    logger.info(f'Crypto key: {crypto_key.hex()}')
+    # Note: Crypto key initialization is deferred until after connection is established
+    # It will be logged during the connection initialization in main_loop()
     
-    # Start the main loop
+    # Start the main loop (this will initialize connection and cipher)
     emotiv_epoc_x.main_loop()

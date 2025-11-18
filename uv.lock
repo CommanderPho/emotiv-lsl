@@ -1440,7 +1440,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "attrs", specifier = ">=25.3.0" },
-    { name = "bleak", specifier = ">=0.22.3" },
+    { name = "bleak", specifier = ">=0.21.0" },
     { name = "bsl", git = "https://github.com/CommanderPho/bsl.git" },
     { name = "cython", specifier = ">=3.1.2" },
     { name = "hid", specifier = "==1.0.4" },

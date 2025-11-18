@@ -210,7 +210,9 @@
   - Document discovered BLE service and characteristic UUIDs
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 9.4_
 
-- [-] 11. Verify LSL stream compatibility between USB and BLE
+- [x] 11. Verify LSL stream compatibility between USB and BLE
+
+
 
 
 

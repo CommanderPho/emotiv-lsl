@@ -43,9 +43,9 @@ class BLEConnection(EmotivConnectionBase):
     """
     
     # UUIDs to be discovered/documented - placeholders for now
-    EMOTIV_SERVICE_UUID = "TBD"  # Main service UUID
-    EEG_CHARACTERISTIC_UUID = "TBD"  # EEG data characteristic
-    MOTION_CHARACTERISTIC_UUID = "TBD"  # Motion data characteristic
+    EMOTIV_SERVICE_UUID = "81072f40-9f3d-11e3-a9dc-0002a5d5c51b"  # Main (Device) service UUID
+    EEG_CHARACTERISTIC_UUID = "81072f41-9f3d-11e3-a9dc-0002a5d5c51b"  # EEG (Data) data characteristic
+    MOTION_CHARACTERISTIC_UUID = "81072f42-9f3d-11e3-a9dc-0002a5d5c51b"  # Motion (MEMS) data characteristic
     
     def __init__(self, device_address: Optional[str] = None):
         """

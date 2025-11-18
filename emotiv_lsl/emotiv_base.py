@@ -276,6 +276,10 @@ class EmotivBase(EasyTimeSyncParsingMixin):
         # Initialize connection
         await self.initialize_connection()
         
+        # Initialize cipher after connection is established (for EmotivEpocX)
+        if hasattr(self, 'initialize_cipher'):
+            self.initialize_cipher()
+        
         # Initialize connection status monitoring
         connection_status = ConnectionStatus()
         device_info = self.connection.get_device_info()

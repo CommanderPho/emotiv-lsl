@@ -52,7 +52,9 @@ async def discover_emotiv_devices(timeout: float = 30.0) -> List[BLEDevice]:
     if emotiv_devices:
         logger.info(f"Found {len(emotiv_devices)} Emotiv device(s):")
         for device in emotiv_devices:
-            logger.info(f"  - {device.name} ({device.address}) RSSI: {device.rssi} dBm")
+            # RSSI may not be available on all platforms (e.g., Windows)
+            rssi_str = f" RSSI: {device.rssi} dBm" if hasattr(device, 'rssi') and device.rssi else ""
+            logger.info(f"  - {device.name} ({device.address}){rssi_str}")
     else:
         logger.warning("No Emotiv devices found")
     

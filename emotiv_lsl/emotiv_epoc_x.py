@@ -23,10 +23,10 @@ class EmotivEpocX(EmotivBase):
     
     
     def __attrs_post_init__(self):
-        if (self.cipher is None):           
-            crypto_key = self.get_crypto_key()
-            self.cipher = AES.new(crypto_key, AES.MODE_ECB)
-        else:
+        # Defer cipher initialization until connection is established
+        # The cipher will be initialized in initialize_cipher() which is called
+        # after the connection is established in main_loop_async()
+        if self.cipher is not None:
             print(f'working cipher was provided on startup!')
 
         if self.is_reverse_engineer_mode:
@@ -36,6 +36,18 @@ class EmotivEpocX(EmotivBase):
         
         # Note: Direct HID device access removed - connection is now handled
         # by the connection abstraction layer in EmotivBase.initialize_connection()
+    
+    def initialize_cipher(self):
+        """
+        Initialize the AES cipher using the device serial number.
+        
+        This method should be called AFTER the connection is established,
+        as it requires access to the device serial number.
+        """
+        if self.cipher is None:
+            crypto_key = self.get_crypto_key()
+            self.cipher = AES.new(crypto_key, AES.MODE_ECB)
+            logger.info(f'Cipher initialized with crypto key: {crypto_key.hex()}')
         
 
     def get_hid_device(self):
@@ -65,35 +77,59 @@ class EmotivEpocX(EmotivBase):
         """
         Generate AES encryption key from device serial number.
         
-        The serial number can be provided in three ways:
-        1. Directly as a bytearray (crypto key)
-        2. As a string serial number
-        3. Retrieved from the connection object (if available)
-        4. Retrieved from HID device (legacy fallback)
+        The serial number can be provided in several ways:
+        1. Directly as a bytearray (crypto key) via serial_number field
+        2. As a string serial number via serial_number field
+        3. Retrieved from USB connection (device_info['device_id'])
+        4. For BLE connections, must be provided via serial_number field
+        
+        Note: BLE connections do not expose the device serial number, so it must
+        be provided manually when creating the EmotivEpocX instance for BLE.
         
         Returns:
             bytearray: 16-byte AES encryption key derived from serial number
+            
+        Raises:
+            ValueError: If serial number cannot be determined
         """
         if (self.serial_number is None):
-            # Try to get serial from connection object first
+            # Try to get serial from connection object
             if self.connection is not None:
                 try:
                     device_info = self.connection.get_device_info()
-                    serial = device_info.get('serial_number', None)
-                    if serial:
-                        self.serial_number = serial
+                    connection_type = device_info.get('connection_type', 'unknown')
+                    
+                    # For USB connections, device_id is the serial number
+                    if connection_type == 'usb':
+                        serial = device_info.get('device_id', None)
+                        if serial and serial != 'Unknown':
+                            self.serial_number = serial
+                        else:
+                            raise ValueError(
+                                "USB connection established but serial number not available"
+                            )
+                    # For BLE connections, serial number must be provided manually
+                    elif connection_type == 'ble':
+                        raise ValueError(
+                            "BLE connections require manual serial number. "
+                            "Please provide the device serial number when creating EmotivEpocX: "
+                            "EmotivEpocX(serial_number='YOUR_SERIAL', connection_type='ble'). "
+                            "The serial number can be found on the USB dongle or device packaging."
+                        )
                     else:
-                        # Fall back to legacy HID device access
-                        serial = self.get_hid_device()['serial_number']
-                        self.serial_number = serial
-                except Exception:
-                    # Fall back to legacy HID device access
-                    serial = self.get_hid_device()['serial_number']
-                    self.serial_number = serial
+                        raise ValueError(f"Unknown connection type: {connection_type}")
+                        
+                except ValueError:
+                    raise
+                except Exception as e:
+                    raise ValueError(
+                        f"Failed to get serial number from connection: {e}"
+                    )
             else:
-                # Fall back to legacy HID device access
-                serial = self.get_hid_device()['serial_number']
-                self.serial_number = serial
+                raise ValueError(
+                    "No connection established and no serial number provided. "
+                    "Cannot generate crypto key."
+                )
         else:
             if isinstance(self.serial_number, bytearray):
                 ## serial is actually bytearray (crypto key)
