@@ -25,6 +25,7 @@ class EmotivBase(EasyTimeSyncParsingMixin):
     connection: Any = field(default=None)  # EmotivConnectionBase instance
     connection_type: str = field(default='usb')  # 'usb', 'ble', or 'auto'
     connection_config: dict = field(factory=dict)  # Connection-specific configuration
+    device_search_interval: float = field(default=5.0)  # seconds between USB discovery attempts
     
     has_motion_data: bool = field(default=False)
     enable_debug_logging: bool = field(default=False)
@@ -96,9 +97,7 @@ class EmotivBase(EasyTimeSyncParsingMixin):
             
         elif self.connection_type == 'usb':
             logger.info("Initializing USB HID connection...")
-            self.connection = USBHIDConnection()
-            await self.connection.connect()
-            device_info = self.connection.get_device_info()
+            device_info = await self._connect_usb_with_retry(logger)
             logger.info(
                 f"USB connection established: {device_info['device_name']} "
                 f"({device_info['device_id']})"
@@ -124,9 +123,7 @@ class EmotivBase(EasyTimeSyncParsingMixin):
             
             # Fall back to USB
             try:
-                self.connection = USBHIDConnection()
-                await self.connection.connect()
-                device_info = self.connection.get_device_info()
+                device_info = await self._connect_usb_with_retry(logger)
                 logger.info(
                     f"USB connection established: {device_info['device_name']} "
                     f"({device_info['device_id']})"
@@ -142,6 +139,36 @@ class EmotivBase(EasyTimeSyncParsingMixin):
                 f"Invalid connection_type: {self.connection_type}. "
                 "Must be 'usb', 'ble', or 'auto'"
             )
+
+    async def _connect_usb_with_retry(self, logger):
+        """
+        Attempt USB discovery until a headset is found, waiting between attempts.
+        """
+        from emotiv_lsl.connection_base import DeviceNotFoundError
+        from emotiv_lsl.usb_connection import USBHIDConnection
+
+        attempt = 0
+        while True:
+            attempt += 1
+            self.connection = USBHIDConnection()
+            try:
+                await self.connection.connect()
+                device_info = self.connection.get_device_info()
+                if attempt > 1:
+                    logger.info(
+                        f"USB headset detected after {attempt} attempts."
+                    )
+                return device_info
+            except DeviceNotFoundError:
+                logger.info(
+                    f"USB headset not found (attempt {attempt}). Retrying in "
+                    f"{self.device_search_interval:.1f}s..."
+                )
+                self.connection = None
+                await asyncio.sleep(self.device_search_interval)
+            except Exception:
+                self.connection = None
+                raise
 
     def get_crypto_key(self) -> bytearray:
         raise NotImplementedError('get_crypto_key method must be implemented in subclass')
