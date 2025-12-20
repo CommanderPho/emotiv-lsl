@@ -416,3 +416,17 @@ pip install git+https://github.com/CommanderPho/phopylslhelper.git
 
 
 ```
+
+# 2025-11-04 - Completely without Conda on RaspPi/Linux
+
+```bash
+sudo apt update
+# Preferred (Bookworm/Ubuntu 22.04+)
+sudo apt install -y liblsl liblsl-dev
+
+# If the above package name isn’t found on your distro:
+sudo apt install -y liblsl2 liblsl-dev
+# Verify it’s visible:
+ldconfig -p | grep liblsl
+
+```
