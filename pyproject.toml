@@ -29,6 +29,7 @@ dependencies = [
     "bsl",
     "phopylslhelper",
     "hid==1.0.4",
+    "influxdb-client>=1.49.0",
 ]
 
 

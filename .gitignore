@@ -11,3 +11,4 @@ dist
 build
 build.7z
 desktop.ini
+.env
