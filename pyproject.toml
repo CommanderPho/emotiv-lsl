@@ -1,9 +1,9 @@
 [project]
 name = "emotiv-lsl"
-version = "0.1.3"
+version = "0.1.4"
 description = "LSL server for Emotiv EPOC X, much more modern than others (~2025) "
 readme = "README.md"
-requires-python = ">=3.8.10"
+requires-python = ">=3.9.13"
 dependencies = [
     "cython>=3.1.2",
     "ipykernel>=6.29.5",
@@ -25,17 +25,17 @@ dependencies = [
     "attrs>=25.3.0",
     "pyinstaller>=6.14.2",
     "pyqtgraph>=0.13.3",
-    "nptyping>=2.5.0",
-    "bsl",
+    "nptyping>=2.0.0",
     "phopylslhelper",
     "hid==1.0.4",
     "influxdb-client>=1.49.0",
+    "numpy>=2.0.2",
+    "lab-recorder-python",
 ]
 
-
 [tool.uv.sources]
-bsl = { git = "https://github.com/CommanderPho/bsl.git" }
 phopylslhelper = { git = "https://github.com/CommanderPho/phopylslhelper.git" }
+lab-recorder-python = { path = "../lab-recorder-python", editable = true }
 
 
 
