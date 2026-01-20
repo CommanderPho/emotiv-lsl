@@ -7,16 +7,22 @@
 			"path": "../PhoLogToLabStreamingLayer"
 		},
 		{
-			"path": "../PhoLabStreamingReceiver"
-		},
-		{
-			"path": "../bsl"
-		},
-		{
 			"path": "../CyKit"
 		},
 		{
-			"path": "../flutter_application_final_emotiv_logger"
+			"path": "../uv-launcher"
+		},
+		{
+			"path": "../lab-recorder-python"
+		},
+		{
+			"path": "../python_xdf_streamer"
+		},
+		{
+			"path": "../stream_viewer"
+		},
+		{
+			"path": "../continuous_video_recorder"
 		}
 	],
 	"settings": {
