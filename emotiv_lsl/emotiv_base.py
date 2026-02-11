@@ -81,7 +81,7 @@ class EmotivBase(EasyTimeSyncParsingMixin):
         """
         # Add some metadata
         info.desc().append_child_value("manufacturer", "emotiv_lsl")
-        info.desc().append_child_value("version", "0.1.1")
+        info.desc().append_child_value("version", "0.1.4")
         info.desc().append_child_value("description", "Logged by the open-source tool 'emotiv_lsl' to record raw data from Emotiv headsets.")
         ## add a custom timestamp field to the stream info:
         info = self.EasyTimeSyncParsingMixin_add_lsl_outlet_info(info=info)
