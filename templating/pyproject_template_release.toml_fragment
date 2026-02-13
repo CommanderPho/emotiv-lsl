@@ -1,0 +1,4 @@
+[tool.uv.sources]
+bsl = { git = "https://github.com/CommanderPho/bsl.git" }
+phopylslhelper = { git = "https://github.com/CommanderPho/phopylslhelper.git" }
+lab-recorder-python = { git = "https://github.com/CommanderPho/lab-recorder-python.git"}
