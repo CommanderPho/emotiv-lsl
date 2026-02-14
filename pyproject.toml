@@ -25,7 +25,6 @@ dependencies = [
     "attrs>=25.3.0",
     "pyinstaller>=6.14.2",
     "pyqtgraph>=0.13.3",
-    "nptyping>=2.0.0",
     "phopylslhelper",
     "hid==1.0.4",
     "influxdb-client>=1.49.0",

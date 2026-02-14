@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import logging
 from Crypto.Cipher import AES
 import numpy as np
-from nptyping import NDArray
 import pylsl
 from pylsl import StreamInfo, StreamOutlet
 from attrs import define, field, Factory
@@ -137,7 +136,7 @@ class EmotivBase(EasyTimeSyncParsingMixin):
         return edk_value
     
     # In the EEG class, add a method to extract quality values
-    def extractQualityValues(self, data, return_as_array: bool=True) -> Union[NDArray, Dict[str, float]]:
+    def extractQualityValues(self, data, return_as_array: bool=True) -> Union[np.ndarray, Dict[str, float]]:
         # Quality values are typically in specific bytes of the data packet
         # For EPOC/EPOC+, quality values are often in data[16] and data[17]
         quality_values_dict = {}
