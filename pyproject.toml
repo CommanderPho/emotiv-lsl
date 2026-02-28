@@ -18,8 +18,8 @@ dependencies = [
     "seaborn>=0.13.2",
     "setuptools>=75.3.2,<81",
     "wheel>=0.45.1",
-    "pyqt5>=5.15.7,<6",
-    "pyqt5-qt5==5.15.2",
+    "pyqt5>=5.15.7,<6; platform_machine != 'aarch64' or sys_platform != 'linux'",
+    "pyqt5-qt5==5.15.2; platform_machine != 'aarch64' or sys_platform != 'linux'",
     "pyshark>=0.6",
     "scipy>=1.10.1",
     "attrs>=22.2.0",
@@ -38,7 +38,7 @@ lab-recorder-python = { path = "../lab-recorder-python", editable = true }
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
-platforms = ["win-64"]
+platforms = ["win-64", "linux-aarch64"]
 
 [tool.pixi.pypi-dependencies]
 phopylslhelper = { git = "https://github.com/CommanderPho/phopylslhelper.git" }
