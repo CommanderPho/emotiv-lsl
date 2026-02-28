@@ -13,3 +13,7 @@ build.7z
 desktop.ini
 .env
 emotiv-lsl.7z
+.cursor*
+.cursorignore*
+.cursorindexingignore*
+.specstory
