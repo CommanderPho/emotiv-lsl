@@ -421,6 +421,10 @@ pip install git+https://github.com/CommanderPho/phopylslhelper.git
 
 ```bash
 sudo apt update
+
+sudo apt install python3-pyqt5
+
+
 # Preferred (Bookworm/Ubuntu 22.04+)
 sudo apt install -y liblsl liblsl-dev
 

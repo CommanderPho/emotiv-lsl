@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import logging
 from Crypto.Cipher import AES
 import numpy as np
-from nptyping import NDArray
 import pylsl
 from pylsl import StreamInfo, StreamOutlet
 from attrs import define, field, Factory
@@ -18,12 +17,13 @@ class EmotivBase(EasyTimeSyncParsingMixin):
     device_name: str = field(default='UnknownEmotivHeadset')
     delimiter: str = field(default=',')
     cipher: Any = field(default=None)
-    KeyModel: int = field(default = 1)    
+    KeyModel: int = field(default = 1)
     
     has_motion_data: bool = field(default=False)
     enable_debug_logging: bool = field(default=False)
     is_reverse_engineer_mode: bool = field(default=False)
-    enable_electrode_quality_stream: bool = field(default=True)
+    enable_electrode_quality_stream: bool = field(default=False)
+    enable_motion_data: bool = field(default=False)
 
     # def __attrs_post_init__(self):
     #     self.cipher = Cipher(self.serial_number)
@@ -80,7 +80,7 @@ class EmotivBase(EasyTimeSyncParsingMixin):
         """
         # Add some metadata
         info.desc().append_child_value("manufacturer", "emotiv_lsl")
-        info.desc().append_child_value("version", "0.1.1")
+        info.desc().append_child_value("version", "0.1.4")
         info.desc().append_child_value("description", "Logged by the open-source tool 'emotiv_lsl' to record raw data from Emotiv headsets.")
         ## add a custom timestamp field to the stream info:
         info = self.EasyTimeSyncParsingMixin_add_lsl_outlet_info(info=info)
@@ -136,7 +136,7 @@ class EmotivBase(EasyTimeSyncParsingMixin):
         return edk_value
     
     # In the EEG class, add a method to extract quality values
-    def extractQualityValues(self, data, return_as_array: bool=True) -> Union[NDArray, Dict[str, float]]:
+    def extractQualityValues(self, data, return_as_array: bool=True) -> Union[np.ndarray, Dict[str, float]]:
         # Quality values are typically in specific bytes of the data packet
         # For EPOC/EPOC+, quality values are often in data[16] and data[17]
         quality_values_dict = {}
@@ -180,7 +180,7 @@ class EmotivBase(EasyTimeSyncParsingMixin):
 
         # Create motion outlet if the device supports it
         motion_outlet = None
-        if self.has_motion_data:
+        if self.has_motion_data and self.enable_motion_data:
             motion_outlet = StreamOutlet(self.get_lsl_outlet_motion_stream_info())
             print(f'Setup motion outlet')
             
@@ -231,16 +231,19 @@ class EmotivBase(EasyTimeSyncParsingMixin):
                 if decoded is not None:
                     # Check if this is motion data (based on number of channels)
                     if len(decoded) == 6:
-                        if self.enable_debug_logging:
-                            logger.debug(f"Packet #{packet_count}: Motion data decoded, {len(decoded)} channels")
-                        if not self.has_motion_data:
-                            self.has_motion_data = True
-                            logger.debug(f'got first motion data!')
+                        if self.enable_motion_data:
+                            if self.enable_debug_logging:
+                                logger.debug(f"Packet #{packet_count}: Motion data decoded, {len(decoded)} channels")
+                            if not self.has_motion_data:
+                                self.has_motion_data = True
+                                logger.debug(f'got first motion data!')
 
-                        if motion_outlet is None:
-                            motion_outlet = StreamOutlet(self.get_lsl_outlet_motion_stream_info())
-                            logger.debug(f'set up motion outlet!')
-                        motion_outlet.push_sample(decoded)
+                            if motion_outlet is None:
+                                motion_outlet = StreamOutlet(self.get_lsl_outlet_motion_stream_info())
+                                logger.debug(f'set up motion outlet!')
+                            motion_outlet.push_sample(decoded)
+                        elif self.enable_debug_logging:
+                            logger.debug(f"Packet #{packet_count}: Motion data decoded but disabled (enable_motion_data=False)")
 
                     elif len(decoded) == 14:  # EEG data has 14 channels
                         if self.enable_debug_logging:

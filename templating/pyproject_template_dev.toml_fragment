@@ -1,0 +1,5 @@
+[tool.uv.sources]
+bsl = { path = "../bsl", editable = true }
+lab-recorder-python = { path = "../lab-recorder-python", editable = true }
+phopylslhelper = { path = "../PhoPyLSLhelper", editable = true }
+
