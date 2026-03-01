@@ -19,7 +19,10 @@ LSL (Lab Streaming Layer) server for the Emotiv EPOC X headset, based on the ori
 
 ## Install Pixi:
 ```ps1
-   powershell -ExecutionPolicy ByPass -c "irm -useb https://pixi.sh/install.ps1 | iex"
+powershell -ExecutionPolicy ByPass -c "irm -useb https://pixi.sh/install.ps1 | iex"
+pixi global install pixi-pack pixi-unpack
+
+pixi run python main.py
 ```
 
 1. **Create a conda environment**: 
