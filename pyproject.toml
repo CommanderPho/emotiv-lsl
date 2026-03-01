@@ -35,12 +35,14 @@ dependencies = [
 [tool.uv.sources]
 phopylslhelper = { path = "../PhoPyLSLhelper", editable = true }
 lab-recorder-python = { path = "../lab-recorder-python", editable = true }
-
 bsl = { path = "../bsl", editable = true }
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-aarch64", "osx-64"]
+
+[tool.pixi.target.win-64.dependencies]
+liblsl = "*"
 
 [tool.pixi.pypi-dependencies]
 phopylslhelper = { git = "https://github.com/CommanderPho/phopylslhelper.git" }
