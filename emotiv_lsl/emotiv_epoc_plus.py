@@ -105,20 +105,12 @@ class EmotivEpocPlus(EmotivBase):
                 pass
                 # raise e
                 
-        packet_data = ""
+        packet_data = []
         for i in range(2, 16, 2):
-            packet_data = packet_data + \
-                str(self.convertEPOC_PLUS(
-                    str(data[i]), str(data[i+1]))) + self.delimiter
+            packet_data.append(self.convertEPOC_PLUS(data[i], data[i+1]))
 
         for i in range(18, len(data), 2):
-            packet_data = packet_data + \
-                str(self.convertEPOC_PLUS(
-                    str(data[i]), str(data[i+1]))) + self.delimiter
-
-        packet_data = packet_data[:-len(self.delimiter)]
-        packet_data = packet_data.split(self.delimiter)
-        packet_data = [float(i) for i in packet_data]
+            packet_data.append(self.convertEPOC_PLUS(data[i], data[i+1]))
 
         # swap positions of AF3 and F3
         packet_data[0], packet_data[2] = packet_data[2], packet_data[0]
@@ -135,10 +127,8 @@ class EmotivEpocPlus(EmotivBase):
         return packet_data, eeg_quality_data
 
 
-    def convertEPOC_PLUS(self, value_1, value_2):
-        edk_value = "%.8f" % (((int(value_1) * .128205128205129) +
-                              4201.02564096001) + ((int(value_2) - 128) * 32.82051289))
-        return edk_value
+    def convertEPOC_PLUS(self, value_1, value_2) -> float:
+        return ((int(value_1) * .128205128205129) + 4201.02564096001) + ((int(value_2) - 128) * 32.82051289)
 
     def validate_data(self, data) -> bool:
         return len(data) == 32
