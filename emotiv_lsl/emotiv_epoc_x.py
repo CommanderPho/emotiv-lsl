@@ -177,18 +177,12 @@ class EmotivEpocX(EmotivBase):
                 # raise e
             
 
-        packet_data = ""
+        packet_data = []
         for i in range(2, 16, 2):
-            packet_data = packet_data + \
-                str(self.convertEPOC_PLUS(str(data[i]), str(data[i+1]))) + self.delimiter
+            packet_data.append(self.convertEPOC_PLUS(data[i], data[i+1]))
 
         for i in range(18, len(data), 2):
-            packet_data = packet_data + \
-                str(self.convertEPOC_PLUS(str(data[i]), str(data[i+1]))) + self.delimiter
-
-        packet_data = packet_data[:-len(self.delimiter)]  # Remove extra delimiter.
-        packet_data = packet_data.split(self.delimiter)
-        packet_data = [float(i) for i in packet_data]
+            packet_data.append(self.convertEPOC_PLUS(data[i], data[i+1]))
 
         # swap positions of AF3 and F3
         packet_data[0], packet_data[2] = packet_data[2], packet_data[0]
