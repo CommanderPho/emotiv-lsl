@@ -37,13 +37,17 @@ class EmotivEpocPlus(EmotivBase):
     def get_crypto_key(self) -> bytearray:
         serial = self.get_hid_device()['serial_number']
         
+        sn = bytearray()
+        for i in range(0, len(serial)):
+            sn += bytearray([ord(serial[i])])
+
         # EPOC+ in 16-bit Mode.
         if not self.is_fourteen_bit_mode:
-            k = ['\0'] * 16
-            k = [sn[-1],sn[-2],sn[-2],sn[-3],sn[-3],sn[-3],sn[-2],sn[-4],sn[-1],sn[-4],sn[-2],sn[-2],sn[-4],sn[-4],sn[-2],sn[-1]]
+            # Memory constraint: use chr() to convert ints back to strings for join
+            k = [chr(sn[-1]), chr(sn[-2]), chr(sn[-2]), chr(sn[-3]), chr(sn[-3]), chr(sn[-3]), chr(sn[-2]), chr(sn[-4]), chr(sn[-1]), chr(sn[-4]), chr(sn[-2]), chr(sn[-2]), chr(sn[-4]), chr(sn[-4]), chr(sn[-2]), chr(sn[-1])]
         else:
             # EPOC+ in 14-bit Mode.
-            k = [sn[-1],00,sn[-2],21,sn[-3],00,sn[-4],12,sn[-3],00,sn[-2],68,sn[-1],00,sn[-2],88]
+            k = [chr(sn[-1]), chr(0), chr(sn[-2]), chr(21), chr(sn[-3]), chr(0), chr(sn[-4]), chr(12), chr(sn[-3]), chr(0), chr(sn[-2]), chr(68), chr(sn[-1]), chr(0), chr(sn[-2]), chr(88)]
             
         self.key = str(''.join(k))
         self.cipher = AES.new(self.key.encode("utf8"), AES.MODE_ECB)
