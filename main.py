@@ -62,20 +62,91 @@ import pystray
 from PIL import Image
 
 console_visible = True
+_console_wndproc = None
+_old_console_wndproc = None
+
+
+def _get_console_hwnd():
+    if sys.platform != "win32":
+        return None
+    import ctypes
+    from ctypes import wintypes
+
+    ctypes.windll.kernel32.GetConsoleWindow.restype = wintypes.HWND
+    return ctypes.windll.kernel32.GetConsoleWindow()
+
+
+def hide_console():
+    global console_visible
+    if sys.platform != "win32":
+        return
+    import ctypes
+
+    hwnd = _get_console_hwnd()
+    if hwnd:
+        ctypes.windll.user32.ShowWindow(hwnd, 0)  # SW_HIDE
+        console_visible = False
+
+
+def show_console():
+    global console_visible
+    if sys.platform != "win32":
+        return
+    import ctypes
+
+    hwnd = _get_console_hwnd()
+    if hwnd:
+        ctypes.windll.user32.ShowWindow(hwnd, 5)  # SW_SHOW
+        ctypes.windll.user32.SetForegroundWindow(hwnd)
+        console_visible = True
+
 
 def toggle_console():
-    global console_visible
-    if sys.platform == "win32":
-        import ctypes
-        hwnd = ctypes.windll.kernel32.GetConsoleWindow()
-        if hwnd:
-            # SW_HIDE = 0, SW_SHOW = 5
-            if console_visible:
-                ctypes.windll.user32.ShowWindow(hwnd, 0)
-                console_visible = False
-            else:
-                ctypes.windll.user32.ShowWindow(hwnd, 5)
-                console_visible = True
+    if console_visible:
+        hide_console()
+    else:
+        show_console()
+
+
+def install_console_minimize_hook():
+    """Intercept the console minimize button so it hides to the tray."""
+    global _console_wndproc, _old_console_wndproc
+    if sys.platform != "win32":
+        return
+
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+
+    GWLP_WNDPROC = -4
+    WM_SYSCOMMAND = 0x0112
+    SC_MINIMIZE = 0xF020
+
+    WNDPROC = ctypes.WINFUNCTYPE(
+        ctypes.c_long,
+        wintypes.HWND,
+        wintypes.UINT,
+        wintypes.WPARAM,
+        wintypes.LPARAM,
+    )
+
+    hwnd = _get_console_hwnd()
+    if not hwnd:
+        return
+
+    @WNDPROC
+    def console_wndproc(hwnd, msg, wparam, lparam):
+        if msg == WM_SYSCOMMAND and (wparam & 0xFFF0) == SC_MINIMIZE:
+            hide_console()
+            return 0
+        return user32.CallWindowProcW(_old_console_wndproc, hwnd, msg, wparam, lparam)
+
+    _console_wndproc = console_wndproc
+    if ctypes.sizeof(ctypes.c_void_p) == 8:
+        _old_console_wndproc = user32.SetWindowLongPtrW(hwnd, GWLP_WNDPROC, _console_wndproc)
+    else:
+        _old_console_wndproc = user32.SetWindowLongW(hwnd, GWLP_WNDPROC, _console_wndproc)
 
 def run_emotiv_loop():
     # Configure logging for debugging data packets
@@ -106,6 +177,7 @@ def on_exit_clicked(icon, item):
 
 if __name__ == "__main__":
     _instance_lock = enforce_single_instance()
+    install_console_minimize_hook()
 
     # Create tray icon
     try:
